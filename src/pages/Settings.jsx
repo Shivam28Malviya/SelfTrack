@@ -116,7 +116,7 @@ export default function Settings() {
     pendingAvatarUsers, approveAvatar, rejectAvatar,
     meta, updateRewards, updateQuote, addWeeklyWinner, removeWeeklyWinner, users,
     changePassword, createAccount, isAdmin,
-    setRole, addCategory, removeCategory, postAnnouncement, clearAnnouncement,
+    setRole, deleteUser, addCategory, removeCategory, postAnnouncement, clearAnnouncement,
     undoAudit, endSeason, getSortedByPeriod,
   } = useAuth()
   const { toast } = useToast()
@@ -124,6 +124,7 @@ export default function Settings() {
   const [notifications, setNotifications] = useState(true)
   const [confirmReset, setConfirmReset] = useState(false)
   const [confirmSeason, setConfirmSeason] = useState(false)
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null)
 
   const [rewardsForm, setRewardsForm] = useState(meta.rewards)
   const [quoteForm, setQuoteForm] = useState(meta.quote)
@@ -208,6 +209,14 @@ export default function Settings() {
 
   const handleApprove = (id, name) => { approveUser(id); toast(`${name} approved.`, 'success') }
   const handleReject = (id, name) => { rejectUser(id); toast(`${name} rejected.`, 'info') }
+
+  const handleDeleteUser = () => {
+    const { username, id } = confirmDeleteUser
+    const result = deleteUser(id)
+    setConfirmDeleteUser(null)
+    if (result.success) toast(`${username} deleted.`, 'success')
+    else toast(result.error, 'error')
+  }
 
   const nonAdminUsers = users.filter(u => u.role !== 'admin' && u.status === 'approved')
 
@@ -378,6 +387,14 @@ export default function Settings() {
                           <option value="admin" className="bg-white text-slate-900">admin</option>
                         </select>
                         <PasswordCell user={u} onSave={changePassword} />
+                        <button
+                          onClick={() => setConfirmDeleteUser(u)}
+                          disabled={u.id === currentUser.id}
+                          title={u.id === currentUser.id ? "Can't delete your own account" : 'Delete user'}
+                          className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-300/30 font-semibold px-2.5 py-1 rounded-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -701,6 +718,16 @@ export default function Settings() {
         danger
         onConfirm={handleReset}
         onCancel={() => setConfirmReset(false)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteUser}
+        title={`Delete ${confirmDeleteUser?.username}?`}
+        message="This permanently removes the account, score, history, and notifications. This cannot be undone."
+        confirmLabel="Delete user"
+        danger
+        onConfirm={handleDeleteUser}
+        onCancel={() => setConfirmDeleteUser(null)}
       />
     </div>
   )

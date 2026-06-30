@@ -236,6 +236,13 @@ export function AuthProvider({ children }) {
   }
   const rejectUser = (id) => setUsers(prev => prev.filter(u => u.id !== id))
 
+  const deleteUser = (id) => {
+    if (currentUser?.id === id) return { success: false, error: "Can't delete your own account." }
+    setUsers(prev => prev.filter(u => u.id !== id))
+    setNotifications(prev => prev.filter(n => n.userId !== id))
+    return { success: true }
+  }
+
   const setRole = (id, role) => setUsers(prev => prev.map(u => (u.id === id ? { ...u, role } : u)))
 
   const changePassword = (userId, newPassword) =>
@@ -318,7 +325,7 @@ export function AuthProvider({ children }) {
         meta, notifications: myNotifications, isAdmin, isStaff,
         login, signup, createAccount, logout, resetPassword,
         addPoints, undoAudit, resetScores, endSeason,
-        approveUser, rejectUser, setRole, changePassword, setBio,
+        approveUser, rejectUser, deleteUser, setRole, changePassword, setBio,
         adminSetAvatar, requestAvatarChange, approveAvatar, rejectAvatar,
         sendKudos,
         getSortedByPeriod, getWeekRankMap,
