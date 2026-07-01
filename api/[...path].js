@@ -19,7 +19,8 @@ async function resetAllScores() {
 }
 
 export default async function handler(req, res) {
-  const segments = Array.isArray(req.query.path) ? req.query.path : []
+  const rawPath = req.query.path
+  const segments = Array.isArray(rawPath) ? rawPath : (rawPath ? [rawPath] : [])
   const route = '/' + segments.join('/')
   const method = req.method
 
