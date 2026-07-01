@@ -11,9 +11,15 @@ import { useToast } from '../components/Toast'
 
 const RANK_MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
-function weekOfYear(d = new Date()) {
-  const onejan = new Date(d.getFullYear(), 0, 1)
-  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7)
+// Monday of the week containing 2026-07-01 — this week is Week 1, weeks run Mon–Sun.
+const WEEK_ANCHOR = new Date(2026, 5, 29)
+function weekNumberSinceAnchor(d = new Date()) {
+  const anchor = new Date(WEEK_ANCHOR)
+  anchor.setHours(0, 0, 0, 0)
+  const today = new Date(d)
+  today.setHours(0, 0, 0, 0)
+  const diffDays = Math.floor((today - anchor) / 86400000)
+  return Math.floor(diffDays / 7) + 1
 }
 const currentMonthName = () => new Date().toLocaleString('default', { month: 'long' })
 
@@ -221,7 +227,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '80ms' }}>
                 <span className="text-2xl animate-float">🏆</span>
                 <div>
-                  <p className="text-xs font-bold text-indigo-200 uppercase tracking-wide">Week {weekOfYear()} Champion</p>
+                  <p className="text-xs font-bold text-indigo-200 uppercase tracking-wide">Week {weekNumberSinceAnchor()} Champion</p>
                   <p className="text-sm font-semibold text-white">
                     {weekChampion.emoji} {weekChampion.id === currentUser?.id ? 'You' : weekChampion.username}
                   </p>
@@ -232,7 +238,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '160ms' }}>
                 <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
                 <div>
-                  <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">{currentMonthName()} Champion</p>
+                  <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">{currentMonthName()}'s Champion</p>
                   <p className="text-sm font-semibold text-white">
                     {monthChampion.emoji} {monthChampion.id === currentUser?.id ? 'You' : monthChampion.username}
                   </p>
