@@ -1,6 +1,6 @@
-import { sql } from './lib/db.js'
-import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from './lib/auth.js'
-import { buildState, pushNotif } from './lib/state.js'
+import { sql } from '../lib/db.js'
+import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from '../lib/auth.js'
+import { buildState, pushNotif } from '../lib/state.js'
 
 const RANDOM_EMOJIS = ['😎', '🎯', '🔥', '⭐', '🎮', '💡', '🧠', '🎪']
 const randomEmoji = () => RANDOM_EMOJIS[(Math.random() * RANDOM_EMOJIS.length) | 0]
