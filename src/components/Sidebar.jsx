@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
 import ConfirmDialog from './ConfirmDialog'
@@ -18,8 +18,12 @@ const NAV = [
 export default function Sidebar() {
   const { currentUser, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
   const handleLogout = () => {
     logout()
@@ -30,15 +34,47 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="w-60 min-h-screen bg-slate-900/60 backdrop-blur-lg border-r border-white/10 flex flex-col shrink-0 animate-slide-in-right">
+      {/* Mobile hamburger — floats above everything, opens the drawer */}
+      {!mobileOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="lg:hidden fixed top-4 left-4 z-40 w-10 h-10 rounded-xl bg-slate-900/80 backdrop-blur-md border border-white/15 text-white flex items-center justify-center text-lg active:scale-95"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+      )}
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-30 bg-black/60 animate-fade-in"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 ease-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 lg:static lg:z-30 lg:w-60 min-h-screen bg-slate-900/90 lg:bg-slate-900/60 backdrop-blur-lg border-r border-white/10 flex flex-col shrink-0`}
+      >
         {/* Logo */}
         <div className="px-6 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl animate-float inline-block">🏆</span>
-            <div>
-              <p className="text-white font-bold text-lg leading-none">SelfTrack</p>
-              <p className="text-slate-300 text-xs mt-0.5">Gamified Progress</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl animate-float inline-block">🏆</span>
+              <div>
+                <p className="text-white font-bold text-lg leading-none">SelfTrack</p>
+                <p className="text-slate-300 text-xs mt-0.5">Gamified Progress</p>
+              </div>
             </div>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden w-8 h-8 rounded-full text-white text-xl leading-none flex items-center justify-center hover:bg-white/10"
+              aria-label="Close menu"
+            >
+              ×
+            </button>
           </div>
           <div className="flex items-center gap-2 mt-4">
             <NotificationsBell />

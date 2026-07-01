@@ -13,7 +13,7 @@ export default function HallOfFame() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-6 py-8 animate-slide-up">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-8 animate-slide-up">
           <h1 className="text-3xl font-extrabold text-white mb-1">🏛️ Hall of Fame</h1>
           <p className="text-slate-200 mb-6">Champions of past seasons.</p>
 

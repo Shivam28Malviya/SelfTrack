@@ -28,7 +28,7 @@ export default function RightPanel() {
   const { rewards, quote, weeklyWinners } = meta
 
   return (
-    <aside className="w-80 shrink-0 border-l border-white/10 bg-white/10 backdrop-blur-lg overflow-y-auto px-5 py-8 space-y-6 animate-slide-in-right">
+    <aside className="hidden xl:block w-80 shrink-0 border-l border-white/10 bg-white/10 backdrop-blur-lg overflow-y-auto px-5 py-8 space-y-6 animate-slide-in-right">
       {/* Monthly Rewards */}
       <section>
         <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Monthly Rewards</h3>

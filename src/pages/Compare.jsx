@@ -30,7 +30,7 @@ export default function Compare() {
   const select = (val, onChange, label) => (
     <select value={val} onChange={e => onChange(e.target.value)}
       aria-label={label}
-      className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      className="w-full sm:w-auto border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400">
       <option value="" className="bg-white text-slate-900">Select…</option>
       {approvedUsers.map(u => <option key={u.id} value={u.id} className="bg-white text-slate-900">{u.username}</option>)}
     </select>
@@ -40,13 +40,13 @@ export default function Compare() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-6 py-8 animate-slide-up">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-8 animate-slide-up">
           <h1 className="text-3xl font-extrabold text-white mb-1">Compare Players</h1>
           <p className="text-slate-200 mb-6">Head-to-head stats.</p>
 
-          <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-6">
             {select(aId, setAId, 'Player A')}
-            <span className="text-slate-300 font-bold">VS</span>
+            <span className="text-slate-300 font-bold text-center">VS</span>
             {select(bId, setBId, 'Player B')}
           </div>
 

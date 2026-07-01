@@ -11,6 +11,12 @@ import { useToast } from '../components/Toast'
 
 const RANK_MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
+function weekOfYear(d = new Date()) {
+  const onejan = new Date(d.getFullYear(), 0, 1)
+  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7)
+}
+const currentMonthName = () => new Date().toLocaleString('default', { month: 'long' })
+
 const PODIUM_STYLES = {
   1: {
     wrapper: 'bg-gradient-to-br from-amber-300/30 to-amber-500/20 border-2 border-amber-300/50 backdrop-blur-md hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1',
@@ -165,10 +171,10 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-8">
 
           {/* Header */}
-          <div className="flex items-start justify-between mb-6 animate-slide-down">
+          <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-6 animate-slide-down">
             <div>
               <h1 className="text-3xl font-extrabold text-white">Leaderboard</h1>
               <p className="text-slate-200 mt-1">
@@ -210,12 +216,12 @@ export default function Dashboard() {
           )}
 
           {/* Champion banners */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {weekChampion && (
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '80ms' }}>
                 <span className="text-2xl animate-float">🏆</span>
                 <div>
-                  <p className="text-xs font-bold text-indigo-200 uppercase tracking-wide">Week Champion</p>
+                  <p className="text-xs font-bold text-indigo-200 uppercase tracking-wide">Week {weekOfYear()} Champion</p>
                   <p className="text-sm font-semibold text-white">
                     {weekChampion.emoji} {weekChampion.id === currentUser?.id ? 'You' : weekChampion.username}
                   </p>
@@ -226,7 +232,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '160ms' }}>
                 <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
                 <div>
-                  <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">Month Champion</p>
+                  <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">{currentMonthName()} Champion</p>
                   <p className="text-sm font-semibold text-white">
                     {monthChampion.emoji} {monthChampion.id === currentUser?.id ? 'You' : monthChampion.username}
                   </p>
@@ -259,7 +265,7 @@ export default function Dashboard() {
               Top Performers
             </h2>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* 1st place — large card */}
               <PodiumCard
                 user={first} rank={1} large canAward={isStaff}
@@ -293,11 +299,11 @@ export default function Dashboard() {
           {/* === RANKS 4+ LIST === */}
           {rest.length > 0 && (
             <section className="animate-slide-up" style={{ animationDelay: '600ms' }}>
-              <div className="flex items-center justify-between mb-3 gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
                 <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                   Rankings
                 </h2>
-                <div className="relative w-56">
+                <div className="relative w-full sm:w-56">
                   <input
                     type="text"
                     data-search
@@ -323,20 +329,20 @@ export default function Dashboard() {
                     <div
                       key={user.id}
                       style={{ animationDelay: `${idx * 40}ms` }}
-                      className={`flex items-center gap-4 px-5 py-3.5 border-b last:border-b-0 border-white/10 hover:bg-white/10 group animate-fade-in ${isMe ? 'bg-indigo-500/20' : ''}`}
+                      className={`flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-3.5 border-b last:border-b-0 border-white/10 hover:bg-white/10 group animate-fade-in ${isMe ? 'bg-indigo-500/20' : ''}`}
                     >
-                      <span className="w-8 text-center text-sm font-bold text-slate-300">
+                      <span className="w-6 sm:w-8 text-center text-sm font-bold text-slate-300 shrink-0">
                         #{rank}
                       </span>
-                      <Avatar user={user} className="w-9 h-9 text-2xl leading-none ring-1 ring-white/20" />
+                      <Avatar user={user} className="w-9 h-9 text-2xl leading-none ring-1 ring-white/20 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-white text-sm truncate">
                           {isMe ? 'You' : user.username}
                         </p>
-                        <p className="text-slate-300 text-xs">{user.stats.wins} wins · {weeks} weeks played</p>
+                        <p className="hidden sm:block text-slate-300 text-xs">{user.stats.wins} wins · {weeks} weeks played</p>
                       </div>
                       <RankDelta userId={user.id} currentRanks={currentWeekRanks} lastRanks={lastWeekRanks} />
-                      <span className="text-white font-bold text-sm">
+                      <span className="text-white font-bold text-sm shrink-0">
                         {user.periodScore.toLocaleString()}
                         <span className="text-slate-300 font-normal text-xs ml-1">pts</span>
                       </span>
@@ -370,7 +376,7 @@ function AddPointsInline({ userId, onOpen }) {
   return (
     <button
       onClick={() => onOpen(userId)}
-      className="opacity-0 group-hover:opacity-100 text-xs bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-50 font-semibold px-3 py-1.5 rounded-lg active:scale-95"
+      className="shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-xs bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-50 font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg active:scale-95"
     >
       + Points
     </button>

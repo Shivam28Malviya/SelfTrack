@@ -224,7 +224,7 @@ export default function Settings() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-6 py-8 space-y-5">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-8 space-y-5">
           <h1 className="text-3xl font-extrabold text-white animate-slide-down">Settings</h1>
 
           {/* Preferences */}

@@ -13,6 +13,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [shake, setShake] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const triggerShake = () => setShake(s => s + 1)
 
@@ -25,11 +26,12 @@ export default function Login() {
     if (!password) { triggerShake(); return setError('Password is required.') }
 
     setLoading(true)
-    await new Promise(r => setTimeout(r, 250))
-    const result = login(trimmedEmail, password)
+    const result = await login(trimmedEmail, password)
     setLoading(false)
     if (result.success) {
+      setSuccess(true)
       toast(`Welcome back!`, 'success')
+      await new Promise(r => setTimeout(r, 550))
       navigate('/')
     } else {
       triggerShake()
@@ -49,7 +51,7 @@ export default function Login() {
 
         <div
           key={shake}
-          className={`bg-white rounded-2xl shadow-2xl p-8 ${shake > 0 ? 'animate-shake' : ''}`}
+          className={`bg-white rounded-2xl shadow-2xl p-8 transition-shadow duration-300 ${shake > 0 ? 'animate-shake' : ''} ${success ? 'ring-4 ring-green-400/60 shadow-green-500/20' : ''}`}
         >
           <h2 className="text-xl font-bold text-slate-800 mb-6">Sign in to your account</h2>
 
@@ -78,17 +80,31 @@ export default function Login() {
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 animate-slide-down">
-                <p className="text-red-600 text-sm">{error}</p>
+                <p className="text-red-600 text-sm">✕ {error}</p>
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 animate-slide-down">
+                <p className="text-green-600 text-sm font-medium">✓ Signed in! Taking you to your dashboard…</p>
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg text-sm mt-2 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 active:scale-[0.98]"
+              disabled={loading || success}
+              className={`w-full text-white font-semibold py-2.5 rounded-lg text-sm mt-2 shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                success
+                  ? 'bg-green-500 shadow-green-500/30'
+                  : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60 shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40'
+              }`}
             >
-              {loading ? (
-                <span className="inline-flex items-center gap-2">
+              {success ? (
+                <span className="inline-flex items-center gap-2 justify-center">
+                  <span className="animate-pop">✓</span> Signed in
+                </span>
+              ) : loading ? (
+                <span className="inline-flex items-center gap-2 justify-center">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in…
                 </span>
