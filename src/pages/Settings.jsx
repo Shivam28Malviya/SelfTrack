@@ -43,17 +43,20 @@ function ImagePicker({ value, onChange, onError }) {
 
 function PasswordCell({ user, onSave }) {
   const { toast } = useToast()
-  const [revealed, setRevealed] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(user.password)
+  const [value, setValue] = useState('')
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (value.length < 6) return setError('Min 6 characters.')
-    if (value === user.password) return setError('Must differ from current.')
-    onSave(user.id, value)
+    setSaving(true)
+    const result = await onSave(user.id, value)
+    setSaving(false)
+    if (!result.success) return setError(result.error)
     toast(`Password updated for ${user.username}.`, 'success')
     setError('')
+    setValue('')
     setEditing(false)
   }
 
@@ -63,6 +66,7 @@ function PasswordCell({ user, onSave }) {
         <div className="flex items-center gap-2">
           <input
             type="text"
+            placeholder="New password"
             value={value}
             onChange={e => { setValue(e.target.value); setError('') }}
             className="border border-white/20 bg-white/10 rounded-lg px-2 py-1 text-xs text-white w-32 focus:outline-none focus:ring-2 focus:ring-indigo-400"
@@ -70,12 +74,13 @@ function PasswordCell({ user, onSave }) {
           />
           <button
             onClick={handleSave}
-            className="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-2 py-1 rounded active:scale-95"
+            disabled={saving}
+            className="text-xs bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold px-2 py-1 rounded active:scale-95"
           >
             Save
           </button>
           <button
-            onClick={() => { setEditing(false); setValue(user.password); setError('') }}
+            onClick={() => { setEditing(false); setValue(''); setError('') }}
             className="text-xs text-slate-300 hover:text-white hover:underline"
           >
             Cancel
@@ -87,15 +92,9 @@ function PasswordCell({ user, onSave }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-mono text-slate-200">{revealed ? user.password : '•'.repeat(Math.max(user.password.length, 6))}</span>
-      <button onClick={() => setRevealed(r => !r)} className="text-xs text-indigo-200 hover:underline">
-        {revealed ? 'Hide' : 'View'}
-      </button>
-      <button onClick={() => setEditing(true)} className="text-xs text-indigo-200 hover:underline">
-        Edit
-      </button>
-    </div>
+    <button onClick={() => setEditing(true)} className="text-xs text-indigo-200 hover:underline">
+      Set new password
+    </button>
   )
 }
 
@@ -190,7 +189,7 @@ export default function Settings() {
     toast('Weekly winner added.', 'success')
   }
 
-  const submitNewAccount = (e) => {
+  const submitNewAccount = async (e) => {
     e.preventDefault()
     const u = newAccount.username.trim()
     const em = newAccount.email.trim()
@@ -198,7 +197,7 @@ export default function Settings() {
     if (!/^[a-zA-Z0-9_]+$/.test(u)) return toast('Username can only contain letters, numbers, underscores.', 'error')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return toast('Enter a valid email.', 'error')
     if (newAccount.password.length < 6) return toast('Password must be at least 6 characters.', 'error')
-    const result = createAccount({ ...newAccount, username: u, email: em })
+    const result = await createAccount({ ...newAccount, username: u, email: em })
     if (result.success) {
       setNewAccount({ username: '', email: '', password: '', role: 'user' })
       toast(`${newAccount.role === 'admin' ? 'Admin' : 'User'} account created.`, 'success')
@@ -210,9 +209,9 @@ export default function Settings() {
   const handleApprove = (id, name) => { approveUser(id); toast(`${name} approved.`, 'success') }
   const handleReject = (id, name) => { rejectUser(id); toast(`${name} rejected.`, 'info') }
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     const { username, id } = confirmDeleteUser
-    const result = deleteUser(id)
+    const result = await deleteUser(id)
     setConfirmDeleteUser(null)
     if (result.success) toast(`${username} deleted.`, 'success')
     else toast(result.error, 'error')

@@ -81,18 +81,19 @@ export default function Profile() {
   // Password change
   const [pwForm, setPwForm] = useState({ next: '', confirm: '' })
   const [pwError, setPwError] = useState('')
-  const [showPw, setShowPw] = useState(false)
+  const [pwSaving, setPwSaving] = useState(false)
 
   const pwMatch = pwForm.next && pwForm.next === pwForm.confirm
-  const pwDifferent = pwForm.next && pwForm.next !== currentUser?.password
 
-  const submitPassword = (e) => {
+  const submitPassword = async (e) => {
     e.preventDefault()
     setPwError('')
     if (pwForm.next.length < 6) return setPwError('New password must be at least 6 characters.')
     if (pwForm.next !== pwForm.confirm) return setPwError('New passwords do not match.')
-    if (pwForm.next === currentUser.password) return setPwError('New password must be different from current password.')
-    changePassword(currentUser.id, pwForm.next)
+    setPwSaving(true)
+    const result = await changePassword(currentUser.id, pwForm.next)
+    setPwSaving(false)
+    if (!result.success) return setPwError(result.error)
     setPwForm({ next: '', confirm: '' })
     toast('Password updated successfully.', 'success')
   }
@@ -249,14 +250,6 @@ export default function Profile() {
           {/* Change password */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg p-5 animate-slide-up" style={{ animationDelay: '420ms' }}>
             <h3 className="font-bold text-white mb-4">Password</h3>
-            <div className="flex items-center justify-between mb-4 bg-white/10 rounded-lg px-3 py-2">
-              <span className="text-slate-200 text-sm font-mono">
-                {showPw ? currentUser?.password : '•'.repeat(currentUser?.password?.length || 8)}
-              </span>
-              <button onClick={() => setShowPw(s => !s)} className="text-xs text-indigo-200 hover:text-indigo-100 hover:underline">
-                {showPw ? 'Hide' : 'View'}
-              </button>
-            </div>
 
             <form onSubmit={submitPassword} className="space-y-3">
               <input
@@ -275,19 +268,16 @@ export default function Profile() {
                   pwForm.confirm && !pwMatch ? 'border-red-400/60' : 'border-white/20'
                 }`}
               />
-              {pwForm.next && !pwDifferent && (
-                <p className="text-amber-300 text-xs animate-fade-in">New password must differ from current.</p>
-              )}
               {pwForm.confirm && !pwMatch && (
                 <p className="text-red-300 text-xs animate-fade-in">Passwords do not match.</p>
               )}
               {pwError && <p className="text-red-300 text-xs animate-slide-down">{pwError}</p>}
               <button
                 type="submit"
-                disabled={!pwMatch || !pwDifferent || pwForm.next.length < 6}
+                disabled={!pwMatch || pwForm.next.length < 6 || pwSaving}
                 className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg text-sm shadow-lg shadow-indigo-500/30 active:scale-[0.98]"
               >
-                Update Password
+                {pwSaving ? 'Saving…' : 'Update Password'}
               </button>
             </form>
           </div>

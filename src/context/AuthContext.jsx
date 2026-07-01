@@ -1,47 +1,16 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { apiCall, getToken, setToken } from '../lib/api'
 
-const RANDOM_EMOJIS = ['😎', '🎯', '🔥', '⭐', '🎮', '💡', '🧠', '🎪']
-
-const seedNow = Date.now()
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
-// build a little spread-out history so charts/heatmap/streaks have data
-function seedHistory(total, weeks) {
-  const per = Math.round(total / weeks)
-  const arr = []
-  let remaining = total
-  for (let i = weeks - 1; i >= 0; i--) {
-    const pts = i === 0 ? remaining : per
-    remaining -= pts
-    arr.push({ date: seedNow - i * WEEK_MS, points: pts, category: 'General' })
-  }
-  return arr
-}
-
-const SEED_USERS = [
-  { id: '1', username: 'Admin', email: 'admin@selftrack.com', password: 'admin123', role: 'admin', status: 'approved', score: 0, emoji: '👑', avatar: '', pendingAvatar: '', bio: 'Keeper of the leaderboard.', stats: { wins: 0 }, history: [], kudos: [] },
-  { id: '2', username: 'AlphaWolf', email: 'alpha@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 9850, emoji: '🦊', avatar: '', pendingAvatar: '', bio: 'Lone wolf, top of the pack.', stats: { wins: 12 }, history: seedHistory(9850, 6), kudos: [] },
-  { id: '3', username: 'PixelQueen', email: 'pixel@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 8420, emoji: '👸', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 10 }, history: seedHistory(8420, 6), kudos: [] },
-  { id: '4', username: 'NeonByte', email: 'neon@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 7190, emoji: '⚡', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 9 }, history: seedHistory(7190, 5), kudos: [] },
-  { id: '5', username: 'StarDrift', email: 'star@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 6540, emoji: '🌟', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 8 }, history: seedHistory(6540, 5), kudos: [] },
-  { id: '6', username: 'CryptoKid', email: 'crypto@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 5830, emoji: '🚀', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 7 }, history: seedHistory(5830, 4), kudos: [] },
-  { id: '7', username: 'IronPulse', email: 'iron@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 4920, emoji: '💪', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 6 }, history: seedHistory(4920, 4), kudos: [] },
-  { id: '8', username: 'ShadowFox', email: 'shadow@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 3670, emoji: '🦝', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 5 }, history: seedHistory(3670, 3), kudos: [] },
-  { id: '9', username: 'VortexVibe', email: 'vortex@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 2410, emoji: '🌀', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 4 }, history: seedHistory(2410, 3), kudos: [] },
-  { id: '10', username: 'MoonRider', email: 'moon@demo.com', password: 'demo123', role: 'user', status: 'approved', score: 1280, emoji: '🌙', avatar: '', pendingAvatar: '', bio: '', stats: { wins: 2 }, history: seedHistory(1280, 2), kudos: [] },
-]
-
 const DEFAULT_META = {
-  rewards: {
-    first: { text: '₹5,000 Bonus + Trophy', image: '' },
-    second: { text: '₹2,500 Bonus + Gift Card', image: '' },
-  },
-  quote: { text: 'Push yourself, because no one else is going to do it for you.', image: '' },
+  rewards: { first: { text: '', image: '' }, second: { text: '', image: '' } },
+  quote: { text: '', image: '' },
   weeklyWinners: [],
-  categories: ['General', 'Sales', 'Training', 'Bonus'],
+  categories: ['General'],
   announcement: { text: '', until: 0 },
-  auditLog: [],   // { id, ts, actorId, actorName, action, userId, userName, points, category, undone }
-  seasons: [],    // { id, name, endedAt, podium:[{id,username,emoji,score}] }
+  auditLog: [],
+  seasons: [],
 }
 
 function startOfWeek(ts) {
@@ -81,218 +50,203 @@ function pointsInWeekOffset(history, offset) {
   return history.filter(h => startOfWeek(h.date) === target).reduce((s, h) => s + h.points, 0)
 }
 
-function normalizeUser(u) {
-  return {
-    avatar: '', pendingAvatar: '', bio: '', kudos: [],
-    ...u,
-    stats: { wins: u.stats?.wins ?? 0 },
-    history: (u.history || []).map(h => ({ category: 'General', ...h })),
-  }
-}
-
-function normalizeMeta(m) {
-  return { ...DEFAULT_META, ...m }
-}
-
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(() => {
-    const stored = localStorage.getItem('selftrack_users')
-    const parsed = stored ? JSON.parse(stored) : SEED_USERS
-    return parsed.map(normalizeUser)
-  })
+  const [users, setUsers] = useState([])
+  const [meta, setMeta] = useState(DEFAULT_META)
+  const [notifications, setNotifications] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
+  const [initializing, setInitializing] = useState(true)
 
-  const [meta, setMeta] = useState(() => {
-    const stored = localStorage.getItem('selftrack_meta')
-    return normalizeMeta(stored ? JSON.parse(stored) : DEFAULT_META)
-  })
+  const applyState = (data) => {
+    setUsers(data.users || [])
+    setMeta(data.meta || DEFAULT_META)
+    setNotifications(data.notifications || [])
+    setCurrentUser(data.currentUser || null)
+  }
 
-  const [notifications, setNotifications] = useState(() => {
-    const stored = localStorage.getItem('selftrack_notifs')
-    return stored ? JSON.parse(stored) : []
-  })
+  const clearAll = () => {
+    setToken(null)
+    setUsers([])
+    setMeta(DEFAULT_META)
+    setNotifications([])
+    setCurrentUser(null)
+  }
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    const stored = localStorage.getItem('selftrack_current')
-    return stored ? JSON.parse(stored) : null
-  })
-
+  // resolve any existing session on load
   useEffect(() => {
-    localStorage.setItem('selftrack_users', JSON.stringify(users))
-    if (currentUser) {
-      const updated = users.find(u => u.id === currentUser.id)
-      if (updated) setCurrentUser(updated)
-    }
-  }, [users])
-
-  useEffect(() => { localStorage.setItem('selftrack_meta', JSON.stringify(meta)) }, [meta])
-  useEffect(() => { localStorage.setItem('selftrack_notifs', JSON.stringify(notifications)) }, [notifications])
-
-  useEffect(() => {
-    if (currentUser) localStorage.setItem('selftrack_current', JSON.stringify(currentUser))
-    else localStorage.removeItem('selftrack_current')
-  }, [currentUser])
-
-  // ---- notifications helper ----
-  const pushNotif = (userId, text, icon = '🔔') =>
-    setNotifications(prev => [{ id: Date.now().toString() + Math.random(), userId, text, icon, ts: Date.now(), read: false }, ...prev].slice(0, 200))
+    const token = getToken()
+    if (!token) { setInitializing(false); return }
+    apiCall('GET', '/state').then(data => {
+      if (data.success) applyState(data)
+      else clearAll()
+      setInitializing(false)
+    })
+  }, [])
 
   // ---- auth ----
-  const login = (email, password) => {
-    const user = users.find(u => u.email === email && u.password === password)
-    if (!user) return { success: false, error: 'Invalid email or password.' }
-    if (user.status === 'pending') return { success: false, error: 'Account pending admin approval.' }
-    setCurrentUser(user)
-    return { success: true }
+  const login = async (email, password) => {
+    const data = await apiCall('POST', '/auth/login', { email, password })
+    if (data.success) { setToken(data.token); applyState(data) }
+    return data
   }
 
-  const signup = (username, email, password) => {
-    if (users.find(u => u.email === email)) return { success: false, error: 'Email already registered.' }
-    if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) return { success: false, error: 'Username already taken.' }
-    const newUser = normalizeUser({
-      id: Date.now().toString(), username, email, password, role: 'user', status: 'pending',
-      score: 0, emoji: RANDOM_EMOJIS[(Math.random() * RANDOM_EMOJIS.length) | 0], stats: { wins: 0 }, history: [],
-    })
-    setUsers(prev => [...prev, newUser])
-    return { success: true, pending: true }
+  const signup = async (username, email, password) => apiCall('POST', '/auth/signup', { username, email, password })
+
+  const createAccount = async ({ username, email, password, role }) => {
+    const data = await apiCall('POST', '/users', { username, email, password, role })
+    if (data.success) applyState(data)
+    return data
   }
 
-  const createAccount = ({ username, email, password, role }) => {
-    if (users.find(u => u.email === email)) return { success: false, error: 'Email already registered.' }
-    if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) return { success: false, error: 'Username already taken.' }
-    const newUser = normalizeUser({
-      id: Date.now().toString(), username, email, password, role, status: 'approved',
-      score: 0, emoji: RANDOM_EMOJIS[(Math.random() * RANDOM_EMOJIS.length) | 0], stats: { wins: 0 }, history: [],
-    })
-    setUsers(prev => [...prev, newUser])
-    return { success: true }
+  const logout = () => {
+    apiCall('POST', '/auth/logout')
+    clearAll()
   }
 
-  const logout = () => setCurrentUser(null)
+  const resetPassword = async (email, newPassword) => apiCall('POST', '/auth/reset-password', { email, newPassword })
 
-  const resetPassword = (email, newPassword) => {
-    const user = users.find(u => u.email === email)
-    if (!user) return { success: false, error: 'No account with that email.' }
-    setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, password: newPassword } : u)))
-    return { success: true }
+  // ---- points ----
+  const addPoints = async (userId, points, category = 'General') => {
+    const data = await apiCall('POST', '/points', { userId, points, category })
+    if (data.success) applyState(data)
+    return data
   }
 
-  // ---- points (with category, notification, audit) ----
-  const addPoints = (userId, points, category = 'General') => {
-    const target = users.find(u => u.id === userId)
-    setUsers(prev => prev.map(u =>
-      u.id === userId
-        ? { ...u, score: u.score + points, stats: { wins: u.stats.wins + 1 }, history: [...u.history, { date: Date.now(), points, category }] }
-        : u
-    ))
-    pushNotif(userId, `You received +${points} points (${category}).`, '⭐')
-    setMeta(prev => ({
-      ...prev,
-      auditLog: [{
-        id: Date.now().toString() + Math.random(), ts: Date.now(),
-        actorId: currentUser?.id, actorName: currentUser?.username || 'System',
-        action: 'addPoints', userId, userName: target?.username || '', points, category, undone: false,
-      }, ...prev.auditLog].slice(0, 300),
-    }))
+  const undoAudit = async (auditId) => {
+    const data = await apiCall('POST', `/audit/${auditId}/undo`)
+    if (data.success) applyState(data)
+    return data
   }
 
-  const undoAudit = (auditId) => {
-    const entry = meta.auditLog.find(a => a.id === auditId)
-    if (!entry || entry.undone || entry.action !== 'addPoints') return
-    setUsers(prev => prev.map(u => {
-      if (u.id !== entry.userId) return u
-      // remove the most recent matching history entry
-      const idx = [...u.history].reverse().findIndex(h => h.points === entry.points && h.category === entry.category)
-      const realIdx = idx === -1 ? -1 : u.history.length - 1 - idx
-      const history = realIdx === -1 ? u.history : u.history.filter((_, i) => i !== realIdx)
-      return { ...u, score: Math.max(0, u.score - entry.points), stats: { wins: Math.max(0, u.stats.wins - 1) }, history }
-    }))
-    setMeta(prev => ({ ...prev, auditLog: prev.auditLog.map(a => (a.id === auditId ? { ...a, undone: true } : a)) }))
-    pushNotif(entry.userId, `An award of +${entry.points} was reverted.`, '↩️')
+  const resetScores = async () => {
+    const data = await apiCall('POST', '/admin/reset-scores')
+    if (data.success) applyState(data)
+    return data
   }
 
-  const resetScores = () => {
-    setUsers(prev => prev.map(u => ({ ...u, score: 0, stats: { wins: 0 }, history: [] })))
-  }
-
-  // ---- season / hall of fame ----
-  const endSeason = (name) => {
-    const podium = [...users]
-      .filter(u => u.role !== 'admin' && u.status === 'approved')
-      .sort((a, b) => b.score - a.score).slice(0, 3)
-      .map(u => ({ id: u.id, username: u.username, emoji: u.emoji, avatar: u.avatar, score: u.score }))
-    setMeta(prev => ({
-      ...prev,
-      seasons: [{ id: Date.now().toString(), name: name || `Season ${prev.seasons.length + 1}`, endedAt: Date.now(), podium }, ...prev.seasons],
-    }))
-    resetScores()
+  const endSeason = async (name) => {
+    const data = await apiCall('POST', '/admin/end-season', { name })
+    if (data.success) applyState(data)
+    return data
   }
 
   // ---- approvals ----
-  const approveUser = (id) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, status: 'approved' } : u)))
-    pushNotif(id, 'Your account has been approved. Welcome aboard!', '✅')
+  const approveUser = async (id) => {
+    const data = await apiCall('POST', `/users/${id}/approve`)
+    if (data.success) applyState(data)
+    return data
   }
-  const rejectUser = (id) => setUsers(prev => prev.filter(u => u.id !== id))
-
-  const deleteUser = (id) => {
-    if (currentUser?.id === id) return { success: false, error: "Can't delete your own account." }
-    setUsers(prev => prev.filter(u => u.id !== id))
-    setNotifications(prev => prev.filter(n => n.userId !== id))
-    return { success: true }
+  const rejectUser = async (id) => {
+    const data = await apiCall('POST', `/users/${id}/reject`)
+    if (data.success) applyState(data)
+    return data
   }
-
-  const setRole = (id, role) => setUsers(prev => prev.map(u => (u.id === id ? { ...u, role } : u)))
-
-  const changePassword = (userId, newPassword) =>
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, password: newPassword } : u)))
-
-  const setBio = (userId, bio) =>
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, bio } : u)))
+  const deleteUser = async (id) => {
+    const data = await apiCall('DELETE', `/users/${id}`)
+    if (data.success) applyState(data)
+    return data
+  }
+  const setRole = async (id, role) => {
+    const data = await apiCall('PATCH', `/users/${id}/role`, { role })
+    if (data.success) applyState(data)
+    return data
+  }
+  const changePassword = async (userId, newPassword) => {
+    const data = await apiCall('POST', `/users/${userId}/password`, { password: newPassword })
+    if (data.success) applyState(data)
+    return data
+  }
+  const setBio = async (userId, bio) => {
+    const data = await apiCall('PATCH', `/users/${userId}/bio`, { bio })
+    if (data.success) applyState(data)
+    return data
+  }
 
   // ---- avatars ----
-  const adminSetAvatar = (userId, dataUrl) =>
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, avatar: dataUrl, pendingAvatar: '' } : u)))
-  const requestAvatarChange = (userId, dataUrl) =>
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, pendingAvatar: dataUrl } : u)))
-  const approveAvatar = (userId) => {
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, avatar: u.pendingAvatar, pendingAvatar: '' } : u)))
-    pushNotif(userId, 'Your new profile picture was approved.', '🖼️')
+  const adminSetAvatar = async (userId, dataUrl) => {
+    const data = await apiCall('POST', `/users/${userId}/avatar`, { action: 'adminSet', dataUrl })
+    if (data.success) applyState(data)
+    return data
   }
-  const rejectAvatar = (userId) => {
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, pendingAvatar: '' } : u)))
-    pushNotif(userId, 'Your profile picture request was declined.', '🚫')
+  const requestAvatarChange = async (userId, dataUrl) => {
+    const data = await apiCall('POST', `/users/${userId}/avatar`, { action: 'request', dataUrl })
+    if (data.success) applyState(data)
+    return data
+  }
+  const approveAvatar = async (userId) => {
+    const data = await apiCall('POST', `/users/${userId}/avatar`, { action: 'approve' })
+    if (data.success) applyState(data)
+    return data
+  }
+  const rejectAvatar = async (userId) => {
+    const data = await apiCall('POST', `/users/${userId}/avatar`, { action: 'reject' })
+    if (data.success) applyState(data)
+    return data
   }
 
   // ---- kudos ----
-  const sendKudos = (targetId, emoji) => {
-    if (!currentUser || currentUser.id === targetId) return
-    setUsers(prev => prev.map(u => {
-      if (u.id !== targetId) return u
-      const existing = u.kudos.find(k => k.fromId === currentUser.id)
-      const kudos = existing
-        ? u.kudos.map(k => (k.fromId === currentUser.id ? { ...k, emoji, ts: Date.now() } : k))
-        : [...u.kudos, { fromId: currentUser.id, fromName: currentUser.username, emoji, ts: Date.now() }]
-      return { ...u, kudos }
-    }))
-    pushNotif(targetId, `${currentUser.username} sent you ${emoji}`, emoji)
+  const sendKudos = async (targetId, emoji) => {
+    if (!currentUser || currentUser.id === targetId) return { success: false }
+    const data = await apiCall('POST', '/kudos', { targetId, emoji })
+    if (data.success) applyState(data)
+    return data
   }
 
   // ---- meta editors ----
-  const updateRewards = (rewards) => setMeta(prev => ({ ...prev, rewards }))
-  const updateQuote = (quote) => setMeta(prev => ({ ...prev, quote }))
-  const addWeeklyWinner = (entry) => setMeta(prev => ({ ...prev, weeklyWinners: [{ id: Date.now().toString(), ...entry }, ...prev.weeklyWinners] }))
-  const removeWeeklyWinner = (id) => setMeta(prev => ({ ...prev, weeklyWinners: prev.weeklyWinners.filter(w => w.id !== id) }))
-  const addCategory = (name) => setMeta(prev => prev.categories.includes(name) ? prev : ({ ...prev, categories: [...prev.categories, name] }))
-  const removeCategory = (name) => setMeta(prev => ({ ...prev, categories: prev.categories.filter(c => c !== name) }))
-  const postAnnouncement = (text, hours) => setMeta(prev => ({ ...prev, announcement: { text, until: Date.now() + hours * 3600 * 1000 } }))
-  const clearAnnouncement = () => setMeta(prev => ({ ...prev, announcement: { text: '', until: 0 } }))
+  const updateRewards = async (rewards) => {
+    const data = await apiCall('POST', '/meta/rewards', rewards)
+    if (data.success) applyState(data)
+    return data
+  }
+  const updateQuote = async (quote) => {
+    const data = await apiCall('POST', '/meta/quote', quote)
+    if (data.success) applyState(data)
+    return data
+  }
+  const addWeeklyWinner = async (entry) => {
+    const data = await apiCall('POST', '/meta/weekly-winners', entry)
+    if (data.success) applyState(data)
+    return data
+  }
+  const removeWeeklyWinner = async (id) => {
+    const data = await apiCall('DELETE', `/meta/weekly-winners/${id}`)
+    if (data.success) applyState(data)
+    return data
+  }
+  const addCategory = async (name) => {
+    const data = await apiCall('POST', '/meta/categories', { name })
+    if (data.success) applyState(data)
+    return data
+  }
+  const removeCategory = async (name) => {
+    const data = await apiCall('DELETE', `/meta/categories/${encodeURIComponent(name)}`)
+    if (data.success) applyState(data)
+    return data
+  }
+  const postAnnouncement = async (text, hours) => {
+    const data = await apiCall('POST', '/meta/announcement', { text, hours })
+    if (data.success) applyState(data)
+    return data
+  }
+  const clearAnnouncement = async () => {
+    const data = await apiCall('DELETE', '/meta/announcement')
+    if (data.success) applyState(data)
+    return data
+  }
 
   // ---- notifications ----
-  const markNotifRead = (id) => setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)))
-  const markAllNotifsRead = () => setNotifications(prev => prev.map(n => (currentUser && n.userId === currentUser.id ? { ...n, read: true } : n)))
-  const myNotifications = currentUser ? notifications.filter(n => n.userId === currentUser.id) : []
+  const markNotifRead = async (id) => {
+    const data = await apiCall('POST', `/notifications/${id}/read`)
+    if (data.success) applyState(data)
+    return data
+  }
+  const markAllNotifsRead = async () => {
+    const data = await apiCall('POST', '/notifications/read-all')
+    if (data.success) applyState(data)
+    return data
+  }
 
   // ---- derived collections ----
   const approvedUsers = users.filter(u => u.role !== 'admin' && u.status === 'approved')
@@ -322,7 +276,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         currentUser, users, sortedUsers, approvedUsers, pendingUsers, pendingAvatarUsers,
-        meta, notifications: myNotifications, isAdmin, isStaff,
+        meta, notifications, isAdmin, isStaff, initializing,
         login, signup, createAccount, logout, resetPassword,
         addPoints, undoAudit, resetScores, endSeason,
         approveUser, rejectUser, deleteUser, setRole, changePassword, setBio,

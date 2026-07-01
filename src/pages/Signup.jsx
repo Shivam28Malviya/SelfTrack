@@ -32,7 +32,7 @@ export default function Signup() {
 
   const triggerShake = () => setShake(s => s + 1)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     const u = form.username.trim()
@@ -44,7 +44,7 @@ export default function Signup() {
     if (form.password !== form.confirm) { triggerShake(); return setError('Passwords do not match.') }
 
     setLoading(true)
-    const result = signup(u, em, form.password)
+    const result = await signup(u, em, form.password)
     setLoading(false)
     if (result.success) {
       toast('Account created. Awaiting admin approval.', 'success', 4000)

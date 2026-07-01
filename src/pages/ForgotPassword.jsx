@@ -10,14 +10,14 @@ export default function ForgotPassword() {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
     const em = form.email.trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return setError('Enter a valid email.')
     if (form.next.length < 6) return setError('New password must be at least 6 characters.')
     if (form.next !== form.confirm) return setError('Passwords do not match.')
-    const res = resetPassword(em, form.next)
+    const res = await resetPassword(em, form.next)
     if (!res.success) return setError(res.error)
     toast('Password reset. You can sign in now.', 'success')
     setDone(true)
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
         <div className="text-center mb-8">
           <span className="text-5xl inline-block animate-float">🔑</span>
           <h1 className="text-3xl font-extrabold mt-3 shimmer-text">Reset Password</h1>
-          <p className="text-slate-200 mt-1 text-sm">Demo flow — resets locally by email.</p>
+          <p className="text-slate-200 mt-1 text-sm">Enter your account email and a new password.</p>
         </div>
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <form onSubmit={submit} className="space-y-4" noValidate>
