@@ -10,12 +10,12 @@ export default function AnnouncementBanner() {
 
   return (
     <div className="fixed inset-x-0 top-16 lg:top-3 z-[70] flex justify-center px-4 pointer-events-none animate-slide-down">
-      <div className="pointer-events-auto w-full max-w-md bg-gradient-to-r from-amber-500/95 to-orange-500/95 text-white pl-4 pr-2 py-2 rounded-full shadow-2xl flex items-center gap-3 border border-amber-300/40 backdrop-blur-md">
-        <span className="text-lg shrink-0">📢</span>
-        <p className="text-sm font-medium truncate">{a.text}</p>
+      <div className="pointer-events-auto w-full max-w-lg bg-gradient-to-r from-amber-500/95 to-orange-500/95 text-white pl-4 pr-2 py-2.5 rounded-2xl shadow-2xl flex items-start gap-3 border border-amber-300/40 backdrop-blur-md">
+        <span className="text-lg shrink-0 mt-0.5">📢</span>
+        <p className="text-sm font-medium leading-snug flex-1">{a.text}</p>
         <button
           onClick={() => setDismissed(true)}
-          className="ml-auto text-white/80 hover:text-white w-7 h-7 rounded-full hover:bg-white/20 text-lg leading-none flex items-center justify-center shrink-0"
+          className="text-white/80 hover:text-white w-7 h-7 rounded-full hover:bg-white/20 text-lg leading-none flex items-center justify-center shrink-0"
           aria-label="Dismiss announcement"
         >
           ×
