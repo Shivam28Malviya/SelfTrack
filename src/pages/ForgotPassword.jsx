@@ -26,13 +26,11 @@ export default function ForgotPassword() {
   if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center animate-scale-in">
+        <div className="w-full max-w-md card p-8 text-center animate-scale-in">
           <div className="text-5xl mb-3">🔓</div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Password reset</h2>
-          <p className="text-slate-500 text-sm mb-6">Use your new password to sign in.</p>
-          <Link to="/login" className="inline-block bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-lg active:scale-95">
-            Back to sign in
-          </Link>
+          <h2 className="text-xl font-bold text-neutral-900 mb-2">Password reset</h2>
+          <p className="text-neutral-500 text-sm mb-6">Use your new password to sign in.</p>
+          <Link to="/login" className="btn-dark">Back to sign in  ↗</Link>
         </div>
       </div>
     )
@@ -41,29 +39,29 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <span className="text-5xl inline-block animate-float">🔑</span>
-          <h1 className="text-3xl font-extrabold mt-3 shimmer-text">Reset Password</h1>
-          <p className="text-slate-200 mt-1 text-sm">Enter your account email and a new password.</p>
+        <div className="text-center mb-6">
+          <span className="eyebrow">Account recovery</span>
+          <h1 className="display text-5xl sm:text-6xl text-neutral-900 mt-2">RESET</h1>
+          <p className="text-neutral-500 mt-2 text-sm">Enter your account email and a new password.</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="card p-8">
           <form onSubmit={submit} className="space-y-4" noValidate>
             <input type="email" placeholder="Account email" value={form.email}
               onChange={e => { setForm(p => ({ ...p, email: e.target.value })); setError('') }}
-              className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="field" />
             <input type="password" placeholder="New password" value={form.next}
               onChange={e => { setForm(p => ({ ...p, next: e.target.value })); setError('') }}
-              className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="field" />
             <input type="password" placeholder="Confirm new password" value={form.confirm}
               onChange={e => { setForm(p => ({ ...p, confirm: e.target.value })); setError('') }}
-              className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="field" />
             {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 animate-slide-down"><p className="text-red-600 text-sm">{error}</p></div>}
-            <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold py-2.5 rounded-lg text-sm shadow-lg active:scale-[0.98]">
-              Reset password
+            <button type="submit" className="w-full bg-neutral-900 text-white hover:bg-neutral-800 font-semibold py-3 rounded-full text-sm active:scale-[0.98]">
+              Reset password  ↗
             </button>
           </form>
-          <p className="text-center text-sm text-slate-500 mt-5">
-            Remembered it? <Link to="/login" className="text-indigo-600 font-medium hover:underline">Sign in</Link>
+          <p className="text-center text-sm text-neutral-500 mt-5">
+            Remembered it? <Link to="/login" className="text-neutral-900 font-semibold hover:underline">Sign in</Link>
           </p>
         </div>
       </div>

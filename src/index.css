@@ -8,89 +8,105 @@
 
 option {
   background-color: #ffffff;
-  color: #1e293b;
+  color: #1b1a17;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+/* ---- WEAVE-style editorial light theme ---- */
 :root {
-  --overlay-top: rgba(10, 16, 32, 0.55);
-  --overlay-bottom: rgba(10, 16, 32, 0.55);
-}
-html[data-theme='aurora'] {
-  --overlay-top: rgba(49, 16, 84, 0.35);
-  --overlay-bottom: rgba(8, 47, 73, 0.45);
+  --paper: #ece9e2;      /* warm page background */
+  --paper-2: #e4e0d7;    /* slightly deeper panel */
+  --surface: #ffffff;    /* cards */
+  --ink: #1b1a17;        /* near-black text */
+  --muted: #6b6a63;      /* secondary text */
+  --faint: #9c9a90;      /* tertiary text / labels */
+  --line: #e2ddd4;       /* hairline borders */
+  --clay: #a97e5d;       /* earthy accent */
+  --clay-soft: #cbb39c;
+  --charcoal: #201e1b;   /* dark sections */
 }
 
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
-  background-image: linear-gradient(var(--overlay-top), var(--overlay-bottom)), url('./assets/mountain-bg.svg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: var(--paper);
   min-height: 100vh;
-  color: #f1f5f9;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  transition: background-image 0.4s ease;
 }
 
-/* Glass scrollbars */
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-}
-*::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 9999px;
-  transition: background 0.2s;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.32);
-}
+/* Subtle scrollbars for the light theme */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(27, 26, 23, 0.18); border-radius: 9999px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(27, 26, 23, 0.32); }
 
-/* Default smooth transitions on common interactives */
-button,
-a,
-input,
-select,
-textarea {
+button, a, input, select, textarea {
   transition: background-color 0.2s, border-color 0.2s, color 0.2s,
     box-shadow 0.2s, transform 0.2s, opacity 0.2s;
 }
 
-/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* Explicit shimmer keyframe (used by inline styles + .shimmer-text, not via animate-* utility) */
+@layer components {
+  /* White editorial card */
+  .card {
+    @apply bg-white border border-neutral-200/80 rounded-[28px] shadow-[0_10px_40px_-24px_rgba(27,26,23,0.35)];
+  }
+  /* Dark charcoal card (feature/product sections like WEAVE) */
+  .card-dark {
+    @apply bg-[#201e1b] text-neutral-100 rounded-[28px] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)];
+  }
+  /* Black pill button */
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 bg-neutral-900 text-white font-semibold rounded-full px-5 py-2.5 text-sm hover:bg-neutral-800 active:scale-[0.98] shadow-sm;
+  }
+  /* Outlined pill button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 bg-white text-neutral-900 font-semibold rounded-full px-5 py-2.5 text-sm border border-neutral-300 hover:border-neutral-900 active:scale-[0.98];
+  }
+  /* Clay accent pill button */
+  .btn-clay {
+    @apply inline-flex items-center justify-center gap-2 bg-[#a97e5d] text-white font-semibold rounded-full px-5 py-2.5 text-sm hover:bg-[#977053] active:scale-[0.98] shadow-sm;
+  }
+  /* Small status chip */
+  .chip {
+    @apply inline-flex items-center gap-1.5 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-full px-3 py-1 text-xs font-medium;
+  }
+  /* Form field */
+  .field {
+    @apply w-full bg-white border border-neutral-300 text-neutral-900 placeholder-neutral-400 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/15 focus:border-neutral-900;
+  }
+  /* Uppercase section eyebrow label */
+  .eyebrow {
+    @apply text-[11px] font-semibold tracking-[0.18em] uppercase text-[#a97e5d];
+  }
+}
+
+/* Editorial display wordmark */
+.display {
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  font-weight: 800;
+}
+
+/* Explicit shimmer keyframe */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-
-/* Shimmer utility */
 .shimmer-text {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(199, 210, 254, 1) 50%,
-    rgba(255, 255, 255, 0.8) 100%
-  );
+  background: linear-gradient(90deg, #201e1b 0%, #a97e5d 50%, #201e1b 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;

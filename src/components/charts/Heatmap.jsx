@@ -31,12 +31,12 @@ export default function Heatmap({ history, weeks = 26 }) {
   }
 
   const shade = (v) => {
-    if (v <= 0) return 'rgba(255,255,255,0.07)'
+    if (v <= 0) return 'rgba(27,26,23,0.06)'
     const t = max ? v / max : 0
-    if (t > 0.75) return '#4f46e5'
-    if (t > 0.5) return '#6366f1'
-    if (t > 0.25) return '#818cf8'
-    return '#a5b4fc'
+    if (t > 0.75) return '#7a5836'
+    if (t > 0.5) return '#a97e5d'
+    if (t > 0.25) return '#c6a482'
+    return '#e0cdb6'
   }
 
   return (
@@ -55,9 +55,9 @@ export default function Heatmap({ history, weeks = 26 }) {
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400">
+      <div className="flex items-center gap-1 mt-2 text-[10px] text-neutral-400">
         <span>Less</span>
-        {['rgba(255,255,255,0.07)', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5'].map((c, i) => (
+        {['rgba(27,26,23,0.06)', '#e0cdb6', '#c6a482', '#a97e5d', '#7a5836'].map((c, i) => (
           <div key={i} className="w-3 h-3 rounded-sm" style={{ background: c }} />
         ))}
         <span>More</span>

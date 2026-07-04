@@ -109,10 +109,10 @@ export default function AddPointsModal({ onClose, targetUserId }) {
                   key={q}
                   type="button"
                   onClick={() => { setAmount(String(q)); setError('') }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border active:scale-95 ${
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-medium border active:scale-95 ${
                     amount === String(q)
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/30'
-                      : 'border-slate-200 text-slate-600 hover:border-indigo-400 hover:bg-indigo-50'
+                      ? 'bg-neutral-900 text-white border-neutral-900'
+                      : 'border-neutral-300 text-neutral-600 hover:border-[#a97e5d] hover:bg-[#f3ece3]'
                   }`}
                 >
                   +{q}
@@ -145,9 +145,9 @@ export default function AddPointsModal({ onClose, targetUserId }) {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold py-2.5 rounded-lg text-sm shadow-lg shadow-indigo-500/30 active:scale-[0.98]"
+            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-3 rounded-full text-sm active:scale-[0.98]"
           >
-            Add Points
+            Add Points  ↗
           </button>
         </form>
       </div>

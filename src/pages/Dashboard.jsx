@@ -37,24 +37,9 @@ function isLastWeekOfMonth(d = new Date()) {
 }
 
 const PODIUM_STYLES = {
-  1: {
-    wrapper: 'bg-gradient-to-br from-amber-300/30 to-amber-500/20 border-2 border-amber-300/50 backdrop-blur-md hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1',
-    badge: 'bg-amber-500 text-white',
-    label: 'text-amber-100',
-    score: 'text-amber-50',
-  },
-  2: {
-    wrapper: 'bg-gradient-to-br from-slate-200/25 to-slate-400/15 border-2 border-slate-200/40 backdrop-blur-md hover:shadow-2xl hover:shadow-slate-300/20 hover:-translate-y-1',
-    badge: 'bg-slate-400 text-white',
-    label: 'text-slate-100',
-    score: 'text-white',
-  },
-  3: {
-    wrapper: 'bg-gradient-to-br from-orange-300/25 to-orange-500/15 border-2 border-orange-300/40 backdrop-blur-md hover:shadow-2xl hover:shadow-orange-400/20 hover:-translate-y-1',
-    badge: 'bg-orange-500 text-white',
-    label: 'text-orange-100',
-    score: 'text-orange-50',
-  },
+  1: { wrapper: 'bg-[#f3ece3] border border-[#e0cdb6]', badge: 'bg-[#a97e5d] text-white', accent: 'text-[#8a6446]' },
+  2: { wrapper: 'bg-white border border-neutral-200', badge: 'bg-neutral-800 text-white', accent: 'text-neutral-600' },
+  3: { wrapper: 'bg-white border border-neutral-200', badge: 'bg-neutral-500 text-white', accent: 'text-neutral-600' },
 }
 
 const PERIODS = [
@@ -68,11 +53,11 @@ function RankDelta({ userId, currentRanks, lastRanks }) {
   const cur = currentRanks[userId]
   const prev = lastRanks[userId]
   if (!cur) return null
-  if (!prev) return <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-100 animate-fade-in">NEW</span>
+  if (!prev) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#a97e5d]/15 text-[#8a6446]">NEW</span>
   const diff = prev - cur
-  if (diff > 0) return <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-green-500/25 text-green-200 animate-fade-in">▲ {diff}</span>
-  if (diff < 0) return <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-red-500/25 text-red-200 animate-fade-in">▼ {Math.abs(diff)}</span>
-  return <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-white/10 text-slate-300">—</span>
+  if (diff > 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700">▲ {diff}</span>
+  if (diff < 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-600">▼ {Math.abs(diff)}</span>
+  return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-400">—</span>
 }
 
 function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, lastRanks, delay }) {
@@ -82,7 +67,7 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
   if (!user) return (
     <div
       style={{ animationDelay: `${delay}ms` }}
-      className={`rounded-2xl ${large ? 'p-6' : 'p-4'} bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center text-slate-300 text-sm animate-fade-in`}
+      className={`rounded-[24px] ${large ? 'p-6' : 'p-4'} bg-neutral-100 border-2 border-dashed border-neutral-300 flex items-center justify-center text-neutral-400 text-sm animate-fade-in`}
     >
       Empty
     </div>
@@ -96,20 +81,19 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
     <>
       <div
         style={{ animationDelay: `${delay}ms` }}
-        className={`rounded-2xl ${style.wrapper} ${large ? 'p-6' : 'p-4'} flex flex-col gap-3 relative animate-slide-up cursor-default ${isMe ? 'ring-2 ring-indigo-300/60' : ''}`}
+        className={`rounded-[24px] ${style.wrapper} ${large ? 'p-6' : 'p-4'} flex flex-col gap-3 relative animate-slide-up shadow-[0_10px_40px_-28px_rgba(27,26,23,0.5)] hover:-translate-y-1 transition-transform ${isMe ? 'ring-2 ring-[#a97e5d]/50' : ''}`}
       >
-        {/* Rank badge */}
         <div className="flex items-center justify-between">
-          <span className={`${style.badge} text-xs font-bold px-2.5 py-1 rounded-full shadow-md`}>
+          <span className={`${style.badge} text-xs font-bold px-2.5 py-1 rounded-full`}>
             {RANK_MEDALS[rank]} #{rank}
           </span>
           <div className="flex items-center gap-1.5">
-            {streak > 1 && <span className="text-xs font-bold text-amber-200" title={`${streak}-week streak`}>🔥{streak}</span>}
+            {streak > 1 && <span className="text-xs font-bold text-[#a97e5d]" title={`${streak}-week streak`}>🔥{streak}</span>}
             <RankDelta userId={user.id} currentRanks={currentRanks} lastRanks={lastRanks} />
             {canAward && (
               <button
                 onClick={() => setModal(true)}
-                className="text-xs bg-white/30 hover:bg-white/50 font-semibold px-2.5 py-1 rounded-full text-white active:scale-95"
+                className="text-xs bg-neutral-900 hover:bg-neutral-800 font-semibold px-2.5 py-1 rounded-full text-white active:scale-95"
               >
                 + Points
               </button>
@@ -117,29 +101,27 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
           </div>
         </div>
 
-        {/* Avatar + name */}
         <div className="flex items-center gap-3">
-          <Avatar user={user} className={`${large ? 'w-16 h-16 text-5xl' : 'w-10 h-10 text-3xl'} leading-none ring-2 ring-white/30`} />
+          <Avatar user={user} className={`${large ? 'w-16 h-16 text-5xl' : 'w-10 h-10 text-3xl'} leading-none ring-2 ring-black/5`} />
           <div>
-            <p className={`font-bold ${large ? 'text-xl' : 'text-base'} text-white leading-tight`}>
-              <PlayerLink user={user} self={isMe} className="text-white" />
-              <span className="ml-1.5 text-xs font-bold text-indigo-200 align-middle">Lv{lvl.level}</span>
+            <p className={`font-bold ${large ? 'text-xl' : 'text-base'} text-neutral-900 leading-tight`}>
+              <PlayerLink user={user} self={isMe} className="text-neutral-900" />
+              <span className="ml-1.5 text-xs font-bold text-[#a97e5d] align-middle">Lv{lvl.level}</span>
             </p>
-            <p className={`${style.score} font-semibold ${large ? 'text-base' : 'text-sm'}`}>
+            <p className={`${style.accent} font-bold ${large ? 'text-base' : 'text-sm'}`}>
               {user.periodScore.toLocaleString()} pts
             </p>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex gap-3 mt-1">
-          <div className="bg-white/15 rounded-xl px-3 py-2 text-center flex-1 hover:bg-white/25">
-            <p className={`text-lg font-bold ${style.score}`}>{user.stats.wins}</p>
-            <p className={`text-xs ${style.label} font-medium`}>Wins</p>
+          <div className="bg-black/[0.04] rounded-2xl px-3 py-2 text-center flex-1">
+            <p className="text-lg font-bold text-neutral-900">{user.stats.wins}</p>
+            <p className="text-xs text-neutral-500 font-medium">Wins</p>
           </div>
-          <div className="bg-white/15 rounded-xl px-3 py-2 text-center flex-1 hover:bg-white/25">
-            <p className={`text-lg font-bold ${style.score}`}>{weeks}</p>
-            <p className={`text-xs ${style.label} font-medium`}>Weeks Played</p>
+          <div className="bg-black/[0.04] rounded-2xl px-3 py-2 text-center flex-1">
+            <p className="text-lg font-bold text-neutral-900">{weeks}</p>
+            <p className="text-xs text-neutral-500 font-medium">Weeks Played</p>
           </div>
         </div>
 
@@ -170,7 +152,6 @@ export default function Dashboard() {
 
   const weekChampion = getSortedByPeriod('week')[0]
   const monthChampion = isLastWeekOfMonth() ? getSortedByPeriod('month')[0] : null
-  const monthPending = !isLastWeekOfMonth()
 
   const currentUserRank = ranked.findIndex(u => u.id === currentUser?.id) + 1
   const myProjection = currentUser && !isAdmin ? projectMonthScore(currentUser.history) : 0
@@ -192,90 +173,80 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-10">
 
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-6 animate-slide-down">
+          <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-8 animate-slide-down">
             <div>
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-amber-300 via-orange-300 to-fuchsia-300 bg-clip-text text-transparent">Leaderboard</h1>
-              <p className="text-slate-200 mt-1">
+              <span className="eyebrow">/Leaderboard</span>
+              <h1 className="display text-5xl sm:text-6xl text-neutral-900 mt-1">RANKINGS</h1>
+              <p className="text-neutral-500 mt-2 max-w-md">
                 {isAdmin
                   ? 'Admin view — manage all player scores.'
                   : currentUserRank > 0
-                  ? `You're ranked #${currentUserRank} this ${period === 'all' ? 'time' : period}. Keep pushing! 🔥`
+                  ? `You're ranked #${currentUserRank} this ${period === 'all' ? 'time' : period}. Keep pushing.`
                   : 'Track your progress. Climb the ranks.'}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={exportCsv}
-                className="bg-white/10 hover:bg-white/20 border border-white/15 text-white font-semibold px-3 py-2.5 rounded-xl text-sm active:scale-95"
-                title="Export leaderboard CSV"
-              >
-                ⬇ Export
-              </button>
+              <button onClick={exportCsv} className="btn-ghost" title="Export leaderboard CSV">⬇ Export</button>
               {isStaff && (
-                <button
-                  onClick={() => setModal(true)}
-                  className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm shadow-lg shadow-violet-500/30 hover:shadow-xl active:scale-95"
-                >
-                  + Add Points
-                </button>
+                <button onClick={() => setModal(true)} className="btn-dark">+ Add Points ↗</button>
               )}
             </div>
           </div>
 
           {/* Predictive ranking for current user */}
           {myProjection > 0 && (
-            <div className="mb-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 flex items-center gap-3 animate-slide-up">
+            <div className="mb-6 card px-4 py-3 flex items-center gap-3 animate-slide-up">
               <span className="text-xl">🔮</span>
-              <p className="text-sm text-slate-100">
+              <p className="text-sm text-neutral-600">
                 At your current pace, you're projected to finish this month around{' '}
-                <span className="font-bold text-indigo-200">{myProjection.toLocaleString()} pts</span>.
+                <span className="font-bold text-[#8a6446]">{myProjection.toLocaleString()} pts</span>.
               </p>
             </div>
           )}
 
           {/* Champion banners */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
             {weekChampion && (
-              <div className="flex items-center gap-3 bg-gradient-to-r from-indigo-500/20 to-transparent backdrop-blur-md border border-indigo-300/25 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '80ms' }}>
+              <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '80ms' }}>
                 <span className="text-2xl animate-float">🏆</span>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-indigo-200 uppercase tracking-wide">Week {weekNumberSinceAnchor()} Champion</p>
-                  <p className="text-sm font-semibold text-amber-200 truncate">
+                  <p className="eyebrow">Week {weekNumberSinceAnchor()} Champion</p>
+                  <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
                     {weekChampion.emoji}{' '}
-                    <PlayerLink user={weekChampion} self={weekChampion.id === currentUser?.id} className="text-amber-100" />
+                    <PlayerLink user={weekChampion} self={weekChampion.id === currentUser?.id} className="text-neutral-900" />
                   </p>
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-3 bg-gradient-to-r from-violet-500/20 to-transparent backdrop-blur-md border border-violet-300/25 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '160ms' }}>
+            <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '160ms' }}>
               <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">{currentMonthName()}'s Champion</p>
+                <p className="eyebrow">{currentMonthName()}'s Champion</p>
                 {monthChampion ? (
-                  <p className="text-sm font-semibold text-fuchsia-200 truncate">
+                  <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
                     {monthChampion.emoji}{' '}
-                    <PlayerLink user={monthChampion} self={monthChampion.id === currentUser?.id} className="text-fuchsia-100" />
+                    <PlayerLink user={monthChampion} self={monthChampion.id === currentUser?.id} className="text-neutral-900" />
                   </p>
                 ) : (
-                  <p className="text-sm font-medium text-slate-400 italic">Announced at month end ⏳</p>
+                  <p className="text-sm font-medium text-neutral-400 italic mt-0.5">Announced at month end ⏳</p>
                 )}
               </div>
             </div>
           </div>
 
           {/* Period tabs */}
-          <div className="flex gap-2 mb-6 animate-slide-up" style={{ animationDelay: '240ms' }}>
+          <div className="flex flex-wrap gap-2 mb-8 animate-slide-up" style={{ animationDelay: '240ms' }}>
             {PERIODS.map(p => (
               <button
                 key={p.id}
                 onClick={() => setPeriod(p.id)}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-medium active:scale-95 ${
+                className={`px-4 py-1.5 rounded-full text-sm font-medium active:scale-95 ${
                   period === p.id
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/30'
-                    : 'bg-white/10 backdrop-blur-md border border-white/20 text-slate-100 hover:border-indigo-300 hover:bg-white/20'
+                    ? 'bg-neutral-900 text-white'
+                    : 'bg-white border border-neutral-300 text-neutral-600 hover:border-neutral-900'
                 }`}
               >
                 {p.label}
@@ -283,23 +254,16 @@ export default function Dashboard() {
             ))}
           </div>
 
-
           {/* === PODIUM SECTION === */}
-          <section className="mb-8">
-            <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">
-              Top Performers
-            </h2>
-
+          <section className="mb-10">
+            <h2 className="eyebrow mb-4">Top Performers</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* 1st place — large card */}
               <PodiumCard
                 user={first} rank={1} large canAward={isStaff}
                 isMe={first?.id === currentUser?.id}
                 currentRanks={currentWeekRanks} lastRanks={lastWeekRanks}
                 delay={300}
               />
-
-              {/* 2nd and 3rd stacked horizontally on the right */}
               <div className="flex gap-4">
                 <div className="flex-1">
                   <PodiumCard
@@ -325,9 +289,7 @@ export default function Dashboard() {
           {rest.length > 0 && (
             <section className="animate-slide-up" style={{ animationDelay: '600ms' }}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
-                <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Rankings
-                </h2>
+                <h2 className="eyebrow">Rankings</h2>
                 <div className="relative w-full sm:w-56">
                   <input
                     type="text"
@@ -335,15 +297,15 @@ export default function Dashboard() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Search players…  ( / )"
-                    className="w-full text-sm bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-slate-300 rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full text-sm bg-white border border-neutral-300 text-neutral-900 placeholder-neutral-400 rounded-full pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 focus:border-neutral-900"
                   />
-                  <span className="absolute left-2.5 top-1.5 text-slate-300 text-sm">🔍</span>
+                  <span className="absolute left-3 top-2 text-neutral-400 text-sm">🔍</span>
                 </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 overflow-hidden shadow-lg">
+              <div className="card overflow-hidden">
                 {filteredRest.length === 0 && (
-                  <p className="text-center text-slate-300 text-sm py-6 animate-fade-in">No players match "{search}".</p>
+                  <p className="text-center text-neutral-400 text-sm py-6 animate-fade-in">No players match "{search}".</p>
                 )}
                 {filteredRest.map((user, idx) => {
                   const rank = ranked.findIndex(u => u.id === user.id) + 1
@@ -354,29 +316,26 @@ export default function Dashboard() {
                     <div
                       key={user.id}
                       style={{ animationDelay: `${idx * 40}ms` }}
-                      className={`flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-3.5 border-b last:border-b-0 border-white/10 hover:bg-white/10 group animate-fade-in ${isMe ? 'bg-indigo-500/20' : ''}`}
+                      className={`flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-3.5 border-b last:border-b-0 border-neutral-100 hover:bg-neutral-50 group animate-fade-in ${isMe ? 'bg-[#f3ece3]' : ''}`}
                     >
-                      <span className="w-6 sm:w-8 text-center text-sm font-bold text-slate-300 shrink-0">
-                        #{rank}
-                      </span>
-                      <Avatar user={user} className="w-9 h-9 text-2xl leading-none ring-1 ring-white/20 shrink-0" />
+                      <span className="w-6 sm:w-8 text-center text-sm font-bold text-neutral-400 shrink-0">#{rank}</span>
+                      <Avatar user={user} className="w-9 h-9 text-2xl leading-none ring-1 ring-black/5 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-white text-sm truncate">
-                          <PlayerLink user={user} self={isMe} className="text-white" />
+                        <p className="font-semibold text-neutral-900 text-sm truncate">
+                          <PlayerLink user={user} self={isMe} className="text-neutral-900" />
                         </p>
-                        {/* visual score bar (relative to leader) */}
-                        <div className="mt-1 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div className="mt-1 h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400"
+                            className="h-full rounded-full bg-[#a97e5d]"
                             style={{ width: `${Math.max(4, Math.round((user.periodScore / maxPeriodScore) * 100))}%` }}
                           />
                         </div>
-                        <p className="hidden sm:block text-slate-400 text-xs mt-1">{user.stats.wins} wins · {weeks} weeks played</p>
+                        <p className="hidden sm:block text-neutral-400 text-xs mt-1">{user.stats.wins} wins · {weeks} weeks played</p>
                       </div>
                       <RankDelta userId={user.id} currentRanks={currentWeekRanks} lastRanks={lastWeekRanks} />
-                      <span className="text-amber-200 font-bold text-sm shrink-0">
+                      <span className="text-[#8a6446] font-bold text-sm shrink-0">
                         {user.periodScore.toLocaleString()}
-                        <span className="text-slate-400 font-normal text-xs ml-1">pts</span>
+                        <span className="text-neutral-400 font-normal text-xs ml-1">pts</span>
                       </span>
                       {isStaff && <AddPointsInline userId={user.id} onOpen={setInlineTargetId} />}
                     </div>
@@ -388,7 +347,7 @@ export default function Dashboard() {
 
           {/* No users fallback */}
           {ranked.length === 0 && (
-            <div className="text-center py-20 text-slate-300 animate-fade-in">
+            <div className="text-center py-20 text-neutral-400 animate-fade-in">
               <div className="text-5xl mb-3 animate-float inline-block">📭</div>
               <p className="font-medium">No players yet. Sign up to be first!</p>
             </div>
@@ -408,7 +367,7 @@ function AddPointsInline({ userId, onOpen }) {
   return (
     <button
       onClick={() => onOpen(userId)}
-      className="shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-xs bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-50 font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg active:scale-95"
+      className="shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-full active:scale-95"
     >
       + Points
     </button>

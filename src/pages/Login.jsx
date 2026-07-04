@@ -40,63 +40,63 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md animate-slide-up">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <span className="text-5xl inline-block animate-float">🏆</span>
-          <h1 className="text-3xl font-extrabold mt-3 shimmer-text">SelfTrack</h1>
-          <p className="text-slate-200 mt-1 text-sm">Compete. Improve. Dominate.</p>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+      {/* Editorial wordmark */}
+      <div className="w-full max-w-md mb-6 text-center animate-slide-up">
+        <span className="eyebrow">Gamified progress</span>
+        <h1 className="display text-6xl sm:text-7xl text-neutral-900 mt-2">SELFTRACK</h1>
+      </div>
 
+      <div className="w-full max-w-md animate-slide-up">
         <div
           key={shake}
-          className={`bg-white rounded-2xl shadow-2xl p-8 transition-shadow duration-300 ${shake > 0 ? 'animate-shake' : ''} ${success ? 'ring-4 ring-green-400/60 shadow-green-500/20' : ''}`}
+          className={`card p-8 transition-shadow duration-300 ${shake > 0 ? 'animate-shake' : ''} ${success ? 'ring-2 ring-[#a97e5d]' : ''}`}
         >
-          <h2 className="text-xl font-bold text-slate-800 mb-6">Sign in to your account</h2>
+          <h2 className="text-lg font-bold text-neutral-900 mb-1">Welcome back</h2>
+          <p className="text-sm text-neutral-500 mb-6">Sign in to your account.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-xs font-semibold tracking-wide uppercase text-neutral-500 mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError('') }}
                 placeholder="you@example.com"
-                className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-xs font-semibold tracking-wide uppercase text-neutral-500 mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); setError('') }}
                 placeholder="••••••••"
-                className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 animate-slide-down">
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 animate-slide-down">
                 <p className="text-red-600 text-sm">✕ {error}</p>
               </div>
             )}
 
             {success && (
-              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 animate-slide-down">
-                <p className="text-green-600 text-sm font-medium">✓ Signed in! Taking you to your dashboard…</p>
+              <div className="bg-[#f2ede6] border border-[#d8c7b3] rounded-xl px-4 py-2.5 animate-slide-down">
+                <p className="text-[#8a6446] text-sm font-medium">✓ Signed in! Taking you to your dashboard…</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading || success}
-              className={`w-full text-white font-semibold py-2.5 rounded-lg text-sm mt-2 shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+              className={`w-full rounded-full py-3 text-sm font-semibold mt-2 active:scale-[0.98] disabled:cursor-not-allowed ${
                 success
-                  ? 'bg-green-500 shadow-green-500/30'
-                  : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60 shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40'
+                  ? 'bg-[#a97e5d] text-white'
+                  : 'bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-60'
               }`}
             >
               {success ? (
@@ -109,20 +109,20 @@ export default function Login() {
                   Signing in…
                 </span>
               ) : (
-                'Sign in'
+                'Sign in  ↗'
               )}
             </button>
           </form>
 
-          <div className="text-center text-sm text-slate-500 mt-5 space-y-1">
+          <div className="text-center text-sm text-neutral-500 mt-5 space-y-1">
             <p>
-              <Link to="/forgot-password" className="text-indigo-600 font-medium hover:underline">
+              <Link to="/forgot-password" className="text-[#a97e5d] font-medium hover:underline">
                 Forgot password?
               </Link>
             </p>
             <p>
               No account?{' '}
-              <Link to="/signup" className="text-indigo-600 font-medium hover:underline">
+              <Link to="/signup" className="text-neutral-900 font-semibold hover:underline">
                 Create one
               </Link>
             </p>

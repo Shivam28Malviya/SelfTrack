@@ -58,18 +58,13 @@ export default function Signup() {
   if (pending) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center animate-scale-in">
+        <div className="w-full max-w-md card p-8 text-center animate-scale-in">
           <div className="text-5xl mb-3 animate-float inline-block">⏳</div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Account created</h2>
-          <p className="text-slate-500 text-sm mb-6">
+          <h2 className="text-xl font-bold text-neutral-900 mb-2">Account created</h2>
+          <p className="text-neutral-500 text-sm mb-6">
             Your account is pending admin approval. You'll be able to sign in once approved.
           </p>
-          <Link
-            to="/login"
-            className="inline-block bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-lg shadow-indigo-500/30 active:scale-95"
-          >
-            Back to sign in
-          </Link>
+          <Link to="/login" className="btn-dark">Back to sign in  ↗</Link>
         </div>
       </div>
     )
@@ -78,49 +73,48 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <span className="text-5xl inline-block animate-float">🏆</span>
-          <h1 className="text-3xl font-extrabold mt-3 shimmer-text">SelfTrack</h1>
-          <p className="text-slate-200 mt-1 text-sm">Join the leaderboard. Start climbing.</p>
+        <div className="text-center mb-6">
+          <span className="eyebrow">Join the leaderboard</span>
+          <h1 className="display text-5xl sm:text-6xl text-neutral-900 mt-2">SELFTRACK</h1>
         </div>
 
         <div
           key={shake}
-          className={`bg-white rounded-2xl shadow-2xl p-8 ${shake > 0 ? 'animate-shake' : ''}`}
+          className={`card p-8 ${shake > 0 ? 'animate-shake' : ''}`}
         >
-          <h2 className="text-xl font-bold text-slate-800 mb-6">Create your account</h2>
+          <h2 className="text-lg font-bold text-neutral-900 mb-6">Create your account</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <label className="block text-xs font-semibold tracking-wide uppercase text-neutral-500 mb-1.5">Username</label>
               <input
                 type="text"
                 value={form.username}
                 onChange={set('username')}
                 placeholder="AwesomePlayer99"
-                className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-xs font-semibold tracking-wide uppercase text-neutral-500 mb-1.5">Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={set('email')}
                 placeholder="you@example.com"
-                className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-xs font-semibold tracking-wide uppercase text-neutral-500 mb-1.5">Password</label>
               <input
                 type="password"
                 value={form.password}
                 onChange={set('password')}
                 placeholder="Min 6 characters"
-                className="w-full border border-slate-300 bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field"
               />
               {form.password && (
                 <div className="mt-2 animate-fade-in">
@@ -128,25 +122,23 @@ export default function Signup() {
                     {[1, 2, 3, 4, 5].map(i => (
                       <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full ${i <= strength.score ? strength.color : 'bg-slate-200'}`}
+                        className={`h-1 flex-1 rounded-full ${i <= strength.score ? strength.color : 'bg-neutral-200'}`}
                       />
                     ))}
                   </div>
-                  <p className="text-xs text-slate-500">{strength.label}</p>
+                  <p className="text-xs text-neutral-500">{strength.label}</p>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm password</label>
+              <label className="block text-xs font-semibold tracking-wide uppercase text-neutral-500 mb-1.5">Confirm password</label>
               <input
                 type="password"
                 value={form.confirm}
                 onChange={set('confirm')}
                 placeholder="Repeat password"
-                className={`w-full border bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                  form.confirm && form.confirm !== form.password ? 'border-red-400' : 'border-slate-300'
-                }`}
+                className={`field ${form.confirm && form.confirm !== form.password ? '!border-red-400' : ''}`}
               />
               {form.confirm && form.confirm !== form.password && (
                 <p className="text-xs text-red-500 mt-1 animate-fade-in">Passwords do not match.</p>
@@ -162,15 +154,15 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg text-sm mt-2 shadow-lg shadow-indigo-500/30 hover:shadow-xl active:scale-[0.98]"
+              className="w-full bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-60 font-semibold py-3 rounded-full text-sm mt-2 active:scale-[0.98]"
             >
-              {loading ? 'Creating account…' : 'Create account'}
+              {loading ? 'Creating account…' : 'Create account  ↗'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-5">
+          <p className="text-center text-sm text-neutral-500 mt-5">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-medium hover:underline">
+            <Link to="/login" className="text-neutral-900 font-semibold hover:underline">
               Sign in
             </Link>
           </p>

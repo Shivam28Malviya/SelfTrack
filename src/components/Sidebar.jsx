@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
 import ConfirmDialog from './ConfirmDialog'
 import NotificationsBell from './NotificationsBell'
-import ThemeToggle from './ThemeToggle'
 import { useToast } from './Toast'
 
 const NAV = [
@@ -56,7 +55,7 @@ export default function Sidebar() {
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 ease-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 lg:static lg:z-30 lg:w-60 min-h-screen bg-slate-900/90 lg:bg-slate-900/60 backdrop-blur-lg border-r border-white/10 flex flex-col shrink-0`}
+        } lg:translate-x-0 lg:static lg:z-30 lg:w-60 min-h-screen bg-[#201e1b] border-r border-black/20 flex flex-col shrink-0`}
       >
         {/* Logo */}
         <div className="px-6 py-6 border-b border-white/10">
@@ -78,7 +77,6 @@ export default function Sidebar() {
           </div>
           <div className="flex items-center gap-2 mt-4">
             <NotificationsBell />
-            <ThemeToggle />
           </div>
         </div>
 
@@ -91,10 +89,10 @@ export default function Sidebar() {
               end={to === '/'}
               style={{ animationDelay: `${i * 60}ms` }}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium relative overflow-hidden animate-slide-up ${
+                `flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium relative overflow-hidden animate-slide-up ${
                   isActive
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white hover:translate-x-1'
+                    ? 'bg-[#a97e5d] text-white shadow-sm'
+                    : 'text-neutral-400 hover:bg-white/10 hover:text-white hover:translate-x-1'
                 }`
               }
             >

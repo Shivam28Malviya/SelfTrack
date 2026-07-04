@@ -30,10 +30,10 @@ function ImagePicker({ value, onChange, onError }) {
   }
   return (
     <div className="flex items-center gap-3">
-      {value && <img src={value} alt="" className="w-12 h-12 rounded-lg object-cover border border-white/20" />}
-      <input type="file" accept="image/*" onChange={handleFile} className="text-xs text-slate-300" />
+      {value && <img src={value} alt="" className="w-12 h-12 rounded-lg object-cover border border-neutral-200" />}
+      <input type="file" accept="image/*" onChange={handleFile} className="text-xs text-neutral-500" />
       {value && (
-        <button type="button" onClick={() => onChange('')} className="text-xs text-red-300 hover:underline">
+        <button type="button" onClick={() => onChange('')} className="text-xs text-red-600 hover:underline">
           Remove
         </button>
       )}
@@ -69,7 +69,7 @@ function PasswordCell({ user, onSave }) {
             placeholder="New password"
             value={value}
             onChange={e => { setValue(e.target.value); setError('') }}
-            className="border border-white/20 bg-white/10 rounded-lg px-2 py-1 text-xs text-white w-32 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-xs text-neutral-900 w-32 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
             autoFocus
           />
           <button
@@ -81,18 +81,18 @@ function PasswordCell({ user, onSave }) {
           </button>
           <button
             onClick={() => { setEditing(false); setValue(''); setError('') }}
-            className="text-xs text-slate-300 hover:text-white hover:underline"
+            className="text-xs text-neutral-500 hover:text-neutral-900 hover:underline"
           >
             Cancel
           </button>
         </div>
-        {error && <p className="text-red-300 text-xs animate-slide-down">{error}</p>}
+        {error && <p className="text-red-600 text-xs animate-slide-down">{error}</p>}
       </div>
     )
   }
 
   return (
-    <button onClick={() => setEditing(true)} className="text-xs text-indigo-200 hover:underline">
+    <button onClick={() => setEditing(true)} className="text-xs text-[#a97e5d] hover:underline">
       Set new password
     </button>
   )
@@ -102,7 +102,7 @@ function Section({ children, delay = 0 }) {
   return (
     <div
       style={{ animationDelay: `${delay}ms` }}
-      className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg p-6 animate-slide-up"
+      className="card p-6 animate-slide-up"
     >
       {children}
     </div>
@@ -227,11 +227,14 @@ export default function Settings() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-8 space-y-5">
-          <h1 className="text-3xl font-extrabold text-white animate-slide-down">Settings</h1>
+          <div className="animate-slide-down mb-1">
+            <span className="eyebrow">/Admin</span>
+            <h1 className="display text-5xl text-neutral-900 mt-1">SETTINGS</h1>
+          </div>
 
           {/* Preferences */}
           <Section delay={0}>
-            <h2 className="font-bold text-white mb-4">Preferences</h2>
+            <h2 className="font-bold text-neutral-900 mb-4">Preferences</h2>
             <Toggle
               label="Score notifications"
               description="Get notified when your rank changes."
@@ -242,16 +245,16 @@ export default function Settings() {
 
           {/* Account info */}
           <Section delay={60}>
-            <h2 className="font-bold text-white mb-4">Account</h2>
+            <h2 className="font-bold text-neutral-900 mb-4">Account</h2>
             <div className="space-y-3">
               {[
                 { label: 'Username', value: currentUser?.username },
                 { label: 'Email', value: currentUser?.email },
                 { label: 'Role', value: currentUser?.role },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b last:border-b-0 border-white/10">
-                  <span className="text-slate-300 text-sm">{label}</span>
-                  <span className="font-medium text-white text-sm capitalize">{value}</span>
+                <div key={label} className="flex justify-between items-center py-2 border-b last:border-b-0 border-neutral-100">
+                  <span className="text-neutral-500 text-sm">{label}</span>
+                  <span className="font-medium text-neutral-900 text-sm capitalize">{value}</span>
                 </div>
               ))}
             </div>
@@ -261,15 +264,15 @@ export default function Settings() {
             <>
               {/* Create account */}
               <Section delay={120}>
-                <h2 className="font-bold text-white mb-1">Create Account</h2>
-                <p className="text-sm text-slate-300 mb-4">Create user or admin accounts directly — no approval needed.</p>
+                <h2 className="font-bold text-neutral-900 mb-1">Create Account</h2>
+                <p className="text-sm text-neutral-500 mb-4">Create user or admin accounts directly — no approval needed.</p>
                 <form onSubmit={submitNewAccount} className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
                     placeholder="Username (3–20 chars)"
                     value={newAccount.username}
                     onChange={e => setNewAccount(p => ({ ...p, username: e.target.value }))}
-                    className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                     required
                   />
                   <input
@@ -277,7 +280,7 @@ export default function Settings() {
                     placeholder="Email"
                     value={newAccount.email}
                     onChange={e => setNewAccount(p => ({ ...p, email: e.target.value }))}
-                    className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                     required
                   />
                   <input
@@ -285,13 +288,13 @@ export default function Settings() {
                     placeholder="Password (min 6)"
                     value={newAccount.password}
                     onChange={e => setNewAccount(p => ({ ...p, password: e.target.value }))}
-                    className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                     required
                   />
                   <select
                     value={newAccount.role}
                     onChange={e => setNewAccount(p => ({ ...p, role: e.target.value }))}
-                    className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   >
                     <option value="user" className="bg-white text-slate-900">User</option>
                     <option value="moderator" className="bg-white text-slate-900">Moderator</option>
@@ -299,34 +302,34 @@ export default function Settings() {
                   </select>
                   <button
                     type="submit"
-                    className="col-span-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold py-2 rounded-lg text-sm shadow-md shadow-indigo-500/30 active:scale-[0.98]"
+                    className="col-span-2 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-2 rounded-lg text-sm shadow-md shadow-indigo-500/30 active:scale-[0.98]"
                   >
                     Create Account
                   </button>
                 </form>
-                <p className="text-xs text-slate-400 mt-2">Moderators can award points but cannot create accounts or change settings.</p>
+                <p className="text-xs text-neutral-400 mt-2">Moderators can award points but cannot create accounts or change settings.</p>
               </Section>
 
               {/* Point categories */}
               <Section delay={150}>
-                <h2 className="font-bold text-white mb-1">Point Categories</h2>
-                <p className="text-sm text-slate-300 mb-4">Used when awarding points and for leaderboard filtering.</p>
+                <h2 className="font-bold text-neutral-900 mb-1">Point Categories</h2>
+                <p className="text-sm text-neutral-500 mb-4">Used when awarding points and for leaderboard filtering.</p>
                 <form onSubmit={submitCategory} className="flex gap-2 mb-3">
                   <input
                     type="text" maxLength={20} value={newCategory}
                     onChange={e => setNewCategory(e.target.value)}
                     placeholder="New category…"
-                    className="flex-1 border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="flex-1 border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
-                  <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm active:scale-95">Add</button>
+                  <button type="submit" className="bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-4 py-2 rounded-lg text-sm active:scale-95">Add</button>
                 </form>
                 <div className="flex flex-wrap gap-2">
                   {meta.categories.map(c => (
-                    <span key={c} className="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full pl-3 pr-1.5 py-1 text-sm text-white">
+                    <span key={c} className="inline-flex items-center gap-1.5 bg-neutral-100 border border-white/15 rounded-full pl-3 pr-1.5 py-1 text-sm text-neutral-900">
                       {c}
                       <button
                         onClick={() => { removeCategory(c); toast(`Removed "${c}".`, 'info') }}
-                        className="w-5 h-5 rounded-full hover:bg-red-500/30 text-red-300 text-xs flex items-center justify-center"
+                        className="w-5 h-5 rounded-full hover:bg-red-500/30 text-red-600 text-xs flex items-center justify-center"
                         title="Remove"
                       >×</button>
                     </span>
@@ -336,26 +339,26 @@ export default function Settings() {
 
               {/* Announcements */}
               <Section delay={165}>
-                <h2 className="font-bold text-white mb-1">Announcement Banner</h2>
-                <p className="text-sm text-slate-300 mb-4">Show a banner to everyone for a set number of hours.</p>
+                <h2 className="font-bold text-neutral-900 mb-1">Announcement Banner</h2>
+                <p className="text-sm text-neutral-500 mb-4">Show a banner to everyone for a set number of hours.</p>
                 <form onSubmit={submitAnnouncement} className="space-y-2">
                   <input
                     type="text" maxLength={120} value={announceForm.text}
                     onChange={e => setAnnounceForm(p => ({ ...p, text: e.target.value }))}
                     placeholder="Announcement message…"
-                    className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
                   <div className="flex gap-2">
                     <input
                       type="number" min="1" max="720" value={announceForm.hours}
                       onChange={e => setAnnounceForm(p => ({ ...p, hours: e.target.value }))}
-                      className="w-28 border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-28 border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                     />
-                    <span className="text-slate-300 text-sm self-center">hours visible</span>
-                    <button type="submit" className="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm active:scale-95">Post</button>
+                    <span className="text-neutral-500 text-sm self-center">hours visible</span>
+                    <button type="submit" className="ml-auto bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-4 py-2 rounded-lg text-sm active:scale-95">Post</button>
                     {meta.announcement?.text && meta.announcement.until > Date.now() && (
                       <button type="button" onClick={() => { clearAnnouncement(); toast('Announcement cleared.', 'info') }}
-                        className="bg-white/10 hover:bg-white/20 text-slate-200 font-semibold px-4 py-2 rounded-lg text-sm">Clear</button>
+                        className="bg-neutral-100 hover:bg-neutral-200 text-neutral-600 font-semibold px-4 py-2 rounded-lg text-sm">Clear</button>
                     )}
                   </div>
                 </form>
@@ -363,16 +366,16 @@ export default function Settings() {
 
               {/* Manage users & passwords */}
               <Section delay={180}>
-                <h2 className="font-bold text-white mb-1">Manage Users & Passwords</h2>
-                <p className="text-sm text-slate-300 mb-4">View or update any account's password, including your own.</p>
+                <h2 className="font-bold text-neutral-900 mb-1">Manage Users & Passwords</h2>
+                <p className="text-sm text-neutral-500 mb-4">View or update any account's password, including your own.</p>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                   {users.filter(u => u.status === 'approved').map(u => (
-                    <div key={u.id} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3 hover:bg-white/10">
+                    <div key={u.id} className="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3 hover:bg-neutral-100">
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar user={u} className="w-8 h-8 text-xl leading-none ring-1 ring-white/20 shrink-0" />
                         <div className="min-w-0">
-                          <p className="font-semibold text-white text-sm truncate">{u.username}</p>
-                          <p className="text-slate-400 text-xs truncate">{u.email}</p>
+                          <p className="font-semibold text-neutral-900 text-sm truncate">{u.username}</p>
+                          <p className="text-neutral-400 text-xs truncate">{u.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -381,7 +384,7 @@ export default function Settings() {
                           onChange={e => { setRole(u.id, e.target.value); toast(`${u.username} is now ${e.target.value}.`, 'success') }}
                           disabled={u.id === currentUser.id}
                           title={u.id === currentUser.id ? "Can't change your own role" : 'Change role'}
-                          className="border border-white/20 bg-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50"
+                          className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-xs text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 disabled:opacity-50"
                         >
                           <option value="user" className="bg-white text-slate-900">user</option>
                           <option value="moderator" className="bg-white text-slate-900">moderator</option>
@@ -392,7 +395,7 @@ export default function Settings() {
                           onClick={() => setConfirmDeleteUser(u)}
                           disabled={u.id === currentUser.id}
                           title={u.id === currentUser.id ? "Can't delete your own account" : 'Delete user'}
-                          className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-300/30 font-semibold px-2.5 py-1 rounded-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-2.5 py-1 rounded-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Delete
                         </button>
@@ -404,7 +407,7 @@ export default function Settings() {
 
               {/* Leaderboard distribution */}
               <Section delay={210}>
-                <h2 className="font-bold text-white mb-4">Score Distribution (All-Time Top 10)</h2>
+                <h2 className="font-bold text-neutral-900 mb-4">Score Distribution (All-Time Top 10)</h2>
                 <BarChart
                   data={getSortedByPeriod('all').slice(0, 10).map(u => ({ label: u.username.slice(0, 6), value: u.score }))}
                 />
@@ -413,25 +416,25 @@ export default function Settings() {
               {/* Avatar approvals */}
               <Section delay={240}>
                 <div className="flex items-center justify-between mb-1">
-                  <h2 className="font-bold text-white">Profile Picture Approvals</h2>
+                  <h2 className="font-bold text-neutral-900">Profile Picture Approvals</h2>
                   {pendingAvatarUsers.length > 0 && (
-                    <span className="bg-amber-500/30 text-amber-100 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse-soft">
+                    <span className="bg-[#f3ece3] text-[#8a6446] text-xs font-bold px-2 py-0.5 rounded-full animate-pulse-soft">
                       {pendingAvatarUsers.length}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-300 mb-4">Users' new profile pictures wait here until approved.</p>
+                <p className="text-sm text-neutral-500 mb-4">Users' new profile pictures wait here until approved.</p>
                 {pendingAvatarUsers.length === 0 ? (
-                  <p className="text-slate-400 text-sm">No pending photo requests.</p>
+                  <p className="text-neutral-400 text-sm">No pending photo requests.</p>
                 ) : (
                   <div className="space-y-2">
                     {pendingAvatarUsers.map(u => (
-                      <div key={u.id} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3 animate-slide-up">
+                      <div key={u.id} className="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3 animate-slide-up">
                         <div className="flex items-center gap-3">
                           <Avatar user={u} className="w-9 h-9 text-2xl leading-none" />
-                          <span className="text-slate-300 text-xs">→</span>
+                          <span className="text-neutral-500 text-xs">→</span>
                           <img src={u.pendingAvatar} alt="new" className="w-9 h-9 rounded-full object-cover ring-2 ring-amber-300/50" />
-                          <p className="font-semibold text-white text-sm">{u.username}</p>
+                          <p className="font-semibold text-neutral-900 text-sm">{u.username}</p>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -442,7 +445,7 @@ export default function Settings() {
                           </button>
                           <button
                             onClick={() => { rejectAvatar(u.id); toast(`${u.username}'s photo rejected.`, 'info') }}
-                            className="bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-300/30 text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95"
+                            className="bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95"
                           >
                             Reject
                           </button>
@@ -456,25 +459,25 @@ export default function Settings() {
               {/* Pending account approvals */}
               <Section delay={300}>
                 <div className="flex items-center justify-between mb-1">
-                  <h2 className="font-bold text-white">Pending Approvals</h2>
+                  <h2 className="font-bold text-neutral-900">Pending Approvals</h2>
                   {pendingUsers.length > 0 && (
-                    <span className="bg-amber-500/30 text-amber-100 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse-soft">
+                    <span className="bg-[#f3ece3] text-[#8a6446] text-xs font-bold px-2 py-0.5 rounded-full animate-pulse-soft">
                       {pendingUsers.length}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-300 mb-4">New signups need approval before they can log in.</p>
+                <p className="text-sm text-neutral-500 mb-4">New signups need approval before they can log in.</p>
                 {pendingUsers.length === 0 ? (
-                  <p className="text-slate-400 text-sm">No pending requests.</p>
+                  <p className="text-neutral-400 text-sm">No pending requests.</p>
                 ) : (
                   <div className="space-y-2">
                     {pendingUsers.map(u => (
-                      <div key={u.id} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3 animate-slide-up">
+                      <div key={u.id} className="flex items-center justify-between bg-neutral-50 rounded-xl px-4 py-3 animate-slide-up">
                         <div className="flex items-center gap-3">
                           <Avatar user={u} className="w-9 h-9 text-2xl leading-none" />
                           <div>
-                            <p className="font-semibold text-white text-sm">{u.username}</p>
-                            <p className="text-slate-400 text-xs">{u.email}</p>
+                            <p className="font-semibold text-neutral-900 text-sm">{u.username}</p>
+                            <p className="text-neutral-400 text-xs">{u.email}</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -486,7 +489,7 @@ export default function Settings() {
                           </button>
                           <button
                             onClick={() => handleReject(u.id, u.username)}
-                            className="bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-300/30 text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95"
+                            className="bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95"
                           >
                             Reject
                           </button>
@@ -499,17 +502,17 @@ export default function Settings() {
 
               {/* Monthly rewards */}
               <Section delay={360}>
-                <h2 className="font-bold text-white mb-4">Monthly Rewards</h2>
+                <h2 className="font-bold text-neutral-900 mb-4">Monthly Rewards</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-200 mb-1">1st Place</label>
+                    <label className="block text-sm font-medium text-neutral-600 mb-1">1st Place</label>
                     <input
                       type="text"
                       maxLength={80}
                       value={rewardsForm.first.text}
                       onChange={e => setRewardsForm(p => ({ ...p, first: { ...p.first, text: e.target.value } }))}
                       placeholder="e.g. ₹5,000 Bonus + Trophy"
-                      className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 mb-2 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                     />
                     <ImagePicker
                       value={rewardsForm.first.image}
@@ -518,14 +521,14 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-200 mb-1">2nd Place</label>
+                    <label className="block text-sm font-medium text-neutral-600 mb-1">2nd Place</label>
                     <input
                       type="text"
                       maxLength={80}
                       value={rewardsForm.second.text}
                       onChange={e => setRewardsForm(p => ({ ...p, second: { ...p.second, text: e.target.value } }))}
                       placeholder="e.g. ₹2,500 Bonus"
-                      className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 mb-2 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                     />
                     <ImagePicker
                       value={rewardsForm.second.image}
@@ -535,7 +538,7 @@ export default function Settings() {
                   </div>
                   <button
                     onClick={saveRewards}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
+                    className="bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
                   >
                     Save Rewards
                   </button>
@@ -544,16 +547,16 @@ export default function Settings() {
 
               {/* Motivational quote */}
               <Section delay={420}>
-                <h2 className="font-bold text-white mb-4">Motivational Quote</h2>
+                <h2 className="font-bold text-neutral-900 mb-4">Motivational Quote</h2>
                 <textarea
                   value={quoteForm.text}
                   onChange={e => setQuoteForm(p => ({ ...p, text: e.target.value }))}
                   rows={2}
                   maxLength={200}
                   placeholder="Enter quote…"
-                  className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                  className="w-full border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 mb-1 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 resize-none"
                 />
-                <p className="text-xs text-slate-400 mb-2 text-right">{quoteForm.text.length}/200</p>
+                <p className="text-xs text-neutral-400 mb-2 text-right">{quoteForm.text.length}/200</p>
                 <ImagePicker
                   value={quoteForm.image}
                   onChange={img => setQuoteForm(p => ({ ...p, image: img }))}
@@ -561,7 +564,7 @@ export default function Settings() {
                 />
                 <button
                   onClick={saveQuote}
-                  className="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
+                  className="mt-3 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
                 >
                   Save Quote
                 </button>
@@ -569,21 +572,21 @@ export default function Settings() {
 
               {/* Results */}
               <Section delay={450}>
-                <h2 className="font-bold text-white mb-1">Results</h2>
-                <p className="text-sm text-slate-300 mb-4">Shown in the right panel; users see a 4-line preview and can expand the full text in a popup.</p>
+                <h2 className="font-bold text-neutral-900 mb-1">Results</h2>
+                <p className="text-sm text-neutral-500 mb-4">Shown in the right panel; users see a 4-line preview and can expand the full text in a popup.</p>
                 <textarea
                   value={resultsForm}
                   onChange={e => setResultsForm(e.target.value)}
                   rows={6}
                   maxLength={4000}
                   placeholder="Enter results / detailed announcement…"
-                  className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y"
+                  className="w-full border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 mb-1 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 resize-y"
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{resultsForm.length}/4000</span>
+                  <span className="text-xs text-neutral-400">{resultsForm.length}/4000</span>
                   <button
                     onClick={saveResults}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
+                    className="bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
                   >
                     Save Results
                   </button>
@@ -592,7 +595,7 @@ export default function Settings() {
 
               {/* Weekly winners */}
               <Section delay={480}>
-                <h2 className="font-bold text-white mb-4">Weekly Winners</h2>
+                <h2 className="font-bold text-neutral-900 mb-4">Weekly Winners</h2>
                 <form onSubmit={submitWinner} className="grid grid-cols-2 gap-2 mb-4">
                   <input
                     type="text"
@@ -600,12 +603,12 @@ export default function Settings() {
                     value={winnerForm.week}
                     onChange={e => setWinnerForm(p => ({ ...p, week: e.target.value }))}
                     placeholder="Week label (e.g. Week 1)"
-                    className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
                   <select
                     value={winnerForm.winnerId}
                     onChange={e => setWinnerForm(p => ({ ...p, winnerId: e.target.value }))}
-                    className="border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   >
                     <option value="" className="bg-white text-slate-900">Select winner…</option>
                     {nonAdminUsers.map(u => (
@@ -618,11 +621,11 @@ export default function Settings() {
                     value={winnerForm.topic}
                     onChange={e => setWinnerForm(p => ({ ...p, topic: e.target.value }))}
                     placeholder="Test topic"
-                    className="col-span-2 border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="col-span-2 border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
                   <button
                     type="submit"
-                    className="col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-sm shadow-md active:scale-[0.98]"
+                    className="col-span-2 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-2 rounded-lg text-sm shadow-md active:scale-[0.98]"
                   >
                     Add Winner
                   </button>
@@ -631,14 +634,14 @@ export default function Settings() {
                 {meta.weeklyWinners.length > 0 && (
                   <div className="space-y-2">
                     {meta.weeklyWinners.map(w => (
-                      <div key={w.id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 hover:bg-white/10 animate-slide-up">
+                      <div key={w.id} className="flex items-center justify-between bg-neutral-50 rounded-lg px-3 py-2 hover:bg-neutral-100 animate-slide-up">
                         <div className="text-sm">
-                          <span className="font-semibold text-white">{w.week}</span>
-                          <span className="text-slate-300"> — {w.winnerName} · {w.topic}</span>
+                          <span className="font-semibold text-neutral-900">{w.week}</span>
+                          <span className="text-neutral-500"> — {w.winnerName} · {w.topic}</span>
                         </div>
                         <button
                           onClick={() => { removeWeeklyWinner(w.id); toast(`Removed "${w.week}".`, 'info') }}
-                          className="text-red-300 hover:text-red-200 hover:underline text-xs"
+                          className="text-red-600 hover:text-red-600 hover:underline text-xs"
                         >
                           Remove
                         </button>
@@ -651,31 +654,31 @@ export default function Settings() {
               {/* Audit log */}
               <Section delay={510}>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-bold text-white">Audit Log</h2>
+                  <h2 className="font-bold text-neutral-900">Audit Log</h2>
                   <button
                     onClick={() => {
                       const rows = meta.auditLog.map(a => [new Date(a.ts).toLocaleString(), a.actorName, a.action, a.userName, a.points, a.category, a.undone ? 'undone' : 'active'])
                       downloadCsv('audit-log.csv', rows, ['When', 'Actor', 'Action', 'User', 'Points', 'Category', 'Status'])
                     }}
-                    className="text-xs bg-white/10 hover:bg-white/20 border border-white/15 text-white px-3 py-1.5 rounded-lg"
+                    className="text-xs bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-900 px-3 py-1.5 rounded-lg"
                   >⬇ Export</button>
                 </div>
                 {meta.auditLog.length === 0 ? (
-                  <p className="text-slate-400 text-sm">No actions logged yet.</p>
+                  <p className="text-neutral-400 text-sm">No actions logged yet.</p>
                 ) : (
                   <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                     {meta.auditLog.slice(0, 50).map(a => (
-                      <div key={a.id} className={`flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 text-xs ${a.undone ? 'opacity-50' : ''}`}>
+                      <div key={a.id} className={`flex items-center justify-between bg-neutral-50 rounded-lg px-3 py-2 text-xs ${a.undone ? 'opacity-50' : ''}`}>
                         <div className="min-w-0">
-                          <p className="text-white truncate">
+                          <p className="text-neutral-900 truncate">
                             <span className="font-semibold">{a.actorName}</span> awarded{' '}
-                            <span className="text-green-300 font-semibold">+{a.points}</span> ({a.category}) to{' '}
+                            <span className="text-green-600 font-semibold">+{a.points}</span> ({a.category}) to{' '}
                             <span className="font-semibold">{a.userName}</span>
                           </p>
-                          <p className="text-slate-400">{new Date(a.ts).toLocaleString()}</p>
+                          <p className="text-neutral-400">{new Date(a.ts).toLocaleString()}</p>
                         </div>
                         {a.undone ? (
-                          <span className="text-slate-400 shrink-0">undone</span>
+                          <span className="text-neutral-400 shrink-0">undone</span>
                         ) : (
                           <button
                             onClick={() => { undoAudit(a.id); toast('Award reverted.', 'info') }}
@@ -690,14 +693,14 @@ export default function Settings() {
 
               {/* Season control */}
               <Section delay={540}>
-                <h2 className="font-bold text-white mb-1">End Season</h2>
-                <p className="text-sm text-slate-300 mb-3">Archive the current top 3 to the Hall of Fame, then reset all scores for a fresh season.</p>
+                <h2 className="font-bold text-neutral-900 mb-1">End Season</h2>
+                <p className="text-sm text-neutral-500 mb-3">Archive the current top 3 to the Hall of Fame, then reset all scores for a fresh season.</p>
                 <div className="flex gap-2">
                   <input
                     type="text" maxLength={30} value={seasonName}
                     onChange={e => setSeasonName(e.target.value)}
                     placeholder="Season name (optional)"
-                    className="flex-1 border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="flex-1 border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
                   <button
                     onClick={() => setConfirmSeason(true)}
@@ -708,13 +711,13 @@ export default function Settings() {
 
               {/* Danger zone */}
               <Section delay={570}>
-                <h2 className="font-bold text-red-200 mb-2">Danger Zone</h2>
-                <p className="text-sm text-slate-300 mb-4">
+                <h2 className="font-bold text-red-600 mb-2">Danger Zone</h2>
+                <p className="text-sm text-neutral-500 mb-4">
                   Reset all player scores to zero. This cannot be undone.
                 </p>
                 <button
                   onClick={() => setConfirmReset(true)}
-                  className="bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-300/30 font-semibold px-4 py-2 rounded-lg text-sm active:scale-95"
+                  className="bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-4 py-2 rounded-lg text-sm active:scale-95"
                 >
                   Reset all scores
                 </button>
@@ -761,13 +764,13 @@ function Toggle({ label, description, checked, onChange }) {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        <p className="text-xs text-slate-300 mt-0.5">{description}</p>
+        <p className="text-sm font-medium text-neutral-900">{label}</p>
+        <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
       </div>
       <button
         onClick={() => onChange(!checked)}
         aria-pressed={checked}
-        className={`w-11 h-6 rounded-full relative ${checked ? 'bg-indigo-600' : 'bg-white/20'}`}
+        className={`w-11 h-6 rounded-full relative ${checked ? 'bg-neutral-900' : 'bg-neutral-300'}`}
       >
         <span
           className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow ${checked ? 'translate-x-6' : 'translate-x-1'}`}

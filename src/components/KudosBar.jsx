@@ -23,8 +23,8 @@ export default function KudosBar({ user }) {
             onClick={() => sendKudos(user.id, e)}
             className={`w-8 h-8 rounded-lg text-base flex items-center justify-center active:scale-90 ${
               myKudo?.emoji === e
-                ? 'bg-indigo-500/40 border border-indigo-300/50'
-                : 'bg-white/10 hover:bg-white/20 border border-white/10'
+                ? 'bg-[#a97e5d]/25 border border-[#cbb39c]'
+                : 'bg-white hover:bg-neutral-100 border border-neutral-200'
             } ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}`}
             title={isSelf ? "Can't kudos yourself" : `Send ${e}`}
           >
@@ -33,7 +33,7 @@ export default function KudosBar({ user }) {
         ))}
       </div>
       {total > 0 && (
-        <span className="text-xs text-slate-300">
+        <span className="text-xs text-neutral-500">
           {total} {total === 1 ? 'kudo' : 'kudos'}
           {Object.entries(counts).map(([e, c]) => ` ${e}${c}`).join('')}
         </span>

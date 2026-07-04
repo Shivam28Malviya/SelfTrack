@@ -8,8 +8,8 @@ export function BadgeChip({ ach, earned = true, size = 'md' }) {
       title={`${ach.label} — ${ach.desc}${earned ? '' : ' (locked)'}`}
       className={`${dim} rounded-xl flex items-center justify-center shrink-0 ${
         earned
-          ? 'bg-gradient-to-br from-indigo-500/40 to-violet-500/30 border border-indigo-300/40 shadow-md'
-          : 'bg-white/5 border border-white/10 grayscale opacity-40'
+          ? 'bg-gradient-to-br from-[#e7d7c4] to-[#cbb39c] border border-[#cbb39c] shadow-sm'
+          : 'bg-neutral-100 border border-neutral-200 grayscale opacity-50'
       }`}
     >
       {ach.icon}
@@ -23,7 +23,7 @@ export function BadgeGrid({ earnedIds }) {
       {ACHIEVEMENTS.map(a => (
         <div key={a.id} className="flex flex-col items-center gap-1 animate-fade-in">
           <BadgeChip ach={a} earned={earnedIds.includes(a.id)} />
-          <span className={`text-[10px] text-center leading-tight ${earnedIds.includes(a.id) ? 'text-slate-200' : 'text-slate-500'}`}>
+          <span className={`text-[10px] text-center leading-tight ${earnedIds.includes(a.id) ? 'text-neutral-700' : 'text-neutral-400'}`}>
             {a.label}
           </span>
         </div>

@@ -1,7 +1,7 @@
 // Hand-rolled SVG line chart — no deps.
-export default function LineChart({ data, height = 140, stroke = '#a5b4fc', fill = 'rgba(129,140,248,0.18)' }) {
+export default function LineChart({ data, height = 140, stroke = '#a97e5d', fill = 'rgba(169,126,93,0.15)' }) {
   if (!data || data.length === 0) {
-    return <p className="text-slate-400 text-sm py-6 text-center">No data yet.</p>
+    return <p className="text-neutral-400 text-sm py-6 text-center">No data yet.</p>
   }
   const w = 100 // viewBox width (percent-based, scales)
   const h = height
@@ -24,7 +24,7 @@ export default function LineChart({ data, height = 140, stroke = '#a5b4fc', fill
         <circle key={i} cx={p[0]} cy={p[1]} r="1.6" fill={stroke} vectorEffect="non-scaling-stroke" />
       ))}
       {data.map((d, i) => (
-        <text key={i} x={pts[i][0]} y={h - 4} fontSize="4" fill="#cbd5e1" textAnchor="middle">{d.label}</text>
+        <text key={i} x={pts[i][0]} y={h - 4} fontSize="4" fill="#8a8880" textAnchor="middle">{d.label}</text>
       ))}
     </svg>
   )
