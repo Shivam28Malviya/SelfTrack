@@ -89,7 +89,11 @@ export function AuthProvider({ children }) {
   // ---- auth ----
   const login = async (email, password) => {
     const data = await apiCall('POST', '/auth/login', { email, password })
-    if (data.success) { setToken(data.token); applyState(data) }
+    if (data.success) {
+      localStorage.removeItem('selftrack_dismissed_announcement') // re-show banner each new session
+      setToken(data.token)
+      applyState(data)
+    }
     return data
   }
 

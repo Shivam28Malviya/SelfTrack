@@ -1,10 +1,21 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 
+const DISMISS_KEY = 'selftrack_dismissed_announcement'
+
 export default function AnnouncementBanner() {
   const { meta } = useAuth()
-  const [dismissed, setDismissed] = useState(false)
   const a = meta.announcement
+  // Stays dismissed across reloads (keyed to this announcement's expiry);
+  // login() clears the key so it shows again next session, and a new
+  // announcement has a different `until` so it reappears too.
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === String(a?.until))
+
+  const dismiss = () => {
+    localStorage.setItem(DISMISS_KEY, String(a?.until))
+    setDismissed(true)
+  }
+
   const active = a?.text && a.until > Date.now()
   if (!active || dismissed) return null
 
@@ -17,7 +28,7 @@ export default function AnnouncementBanner() {
           <p className="text-sm font-medium leading-snug text-neutral-800">{a.text}</p>
         </div>
         <button
-          onClick={() => setDismissed(true)}
+          onClick={dismiss}
           className="text-neutral-400 hover:text-neutral-900 w-7 h-7 rounded-full hover:bg-neutral-100 text-lg leading-none flex items-center justify-center shrink-0"
           aria-label="Dismiss announcement"
         >
