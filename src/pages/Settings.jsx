@@ -113,7 +113,7 @@ export default function Settings() {
   const {
     currentUser, resetScores, pendingUsers, approveUser, rejectUser,
     pendingAvatarUsers, approveAvatar, rejectAvatar,
-    meta, updateRewards, updateQuote, addWeeklyWinner, removeWeeklyWinner, users,
+    meta, updateRewards, updateQuote, updateResults, addWeeklyWinner, removeWeeklyWinner, users,
     changePassword, createAccount, isAdmin,
     setRole, deleteUser, addCategory, removeCategory, postAnnouncement, clearAnnouncement,
     undoAudit, endSeason, getSortedByPeriod,
@@ -127,6 +127,7 @@ export default function Settings() {
 
   const [rewardsForm, setRewardsForm] = useState(meta.rewards)
   const [quoteForm, setQuoteForm] = useState(meta.quote)
+  const [resultsForm, setResultsForm] = useState(meta.results?.text || '')
   const [winnerForm, setWinnerForm] = useState({ week: '', topic: '', winnerId: '' })
 
   const [newAccount, setNewAccount] = useState({ username: '', email: '', password: '', role: 'user' })
@@ -172,6 +173,7 @@ export default function Settings() {
     updateQuote(quoteForm)
     toast('Quote saved.', 'success')
   }
+  const saveResults = () => { updateResults({ text: resultsForm }); toast('Results saved.', 'success') }
 
   const submitWinner = (e) => {
     e.preventDefault()
@@ -563,6 +565,29 @@ export default function Settings() {
                 >
                   Save Quote
                 </button>
+              </Section>
+
+              {/* Results */}
+              <Section delay={450}>
+                <h2 className="font-bold text-white mb-1">Results</h2>
+                <p className="text-sm text-slate-300 mb-4">Shown in the right panel; users see a 4-line preview and can expand the full text in a popup.</p>
+                <textarea
+                  value={resultsForm}
+                  onChange={e => setResultsForm(e.target.value)}
+                  rows={6}
+                  maxLength={4000}
+                  placeholder="Enter results / detailed announcement…"
+                  className="w-full border border-white/20 bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">{resultsForm.length}/4000</span>
+                  <button
+                    onClick={saveResults}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md active:scale-95"
+                  >
+                    Save Results
+                  </button>
+                </div>
               </Section>
 
               {/* Weekly winners */}

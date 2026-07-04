@@ -40,6 +40,7 @@ export default function App() {
       <Route path="/forgot-password" element={currentUser ? <Navigate to="/" replace /> : <ForgotPassword />} />
       <Route path="/" element={<Authed><Dashboard /></Authed>} />
       <Route path="/profile" element={<Authed><Profile /></Authed>} />
+      <Route path="/player/:id" element={<Authed><Profile /></Authed>} />
       <Route path="/compare" element={<Authed><Compare /></Authed>} />
       <Route path="/hall-of-fame" element={<Authed><HallOfFame /></Authed>} />
       <Route path="/settings" element={<Authed><Settings /></Authed>} />

@@ -86,6 +86,8 @@ create table if not exists meta (
   rewards jsonb not null default '{"first":{"text":"","image":""},"second":{"text":"","image":""}}',
   quote jsonb not null default '{"text":"","image":""}',
   categories jsonb not null default '["General"]',
-  announcement jsonb not null default '{"text":"","until":0}'
+  announcement jsonb not null default '{"text":"","until":0}',
+  results jsonb not null default '{"text":""}'
 );
 insert into meta (id) values (1) on conflict (id) do nothing;
+alter table meta add column if not exists results jsonb not null default '{"text":""}';

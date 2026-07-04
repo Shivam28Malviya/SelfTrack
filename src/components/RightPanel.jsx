@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
+import Modal from './Modal'
+import PlayerLink from './PlayerLink'
 
 function RewardCard({ place, data, color, delay }) {
   if (!data?.text && !data?.image) return null
@@ -25,13 +28,16 @@ function RewardCard({ place, data, color, delay }) {
 
 export default function RightPanel() {
   const { meta, users } = useAuth()
-  const { rewards, quote, weeklyWinners } = meta
+  const { rewards, quote, results, weeklyWinners } = meta
+  const [showResults, setShowResults] = useState(false)
+
+  const resultsText = results?.text || ''
 
   return (
     <aside className="hidden xl:block w-80 shrink-0 border-l border-white/10 bg-white/10 backdrop-blur-lg overflow-y-auto px-5 py-8 space-y-6 animate-slide-in-right">
       {/* Monthly Rewards */}
       <section>
-        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Monthly Rewards</h3>
+        <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider mb-3">🎁 Monthly Rewards</h3>
         <div className="space-y-2">
           <RewardCard place="first" data={rewards.first} color="bg-amber-300/15 border-amber-200/30 text-amber-50" delay={100} />
           <RewardCard place="second" data={rewards.second} color="bg-slate-200/10 border-slate-200/25 text-slate-50" delay={180} />
@@ -40,7 +46,7 @@ export default function RightPanel() {
 
       {/* Weekly Winners */}
       <section>
-        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Weekly Winners</h3>
+        <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider mb-3">🏅 Weekly Winners</h3>
         {weeklyWinners.length === 0 ? (
           <p className="text-slate-300 text-sm">No winners recorded yet.</p>
         ) : (
@@ -54,9 +60,13 @@ export default function RightPanel() {
                   className="flex items-center justify-between gap-3 bg-indigo-500/15 backdrop-blur-md rounded-xl px-3 py-2.5 border border-indigo-200/25 animate-slide-up hover:bg-indigo-500/25 hover:scale-[1.02]"
                 >
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-indigo-100">{w.week}</p>
-                    <p className="text-sm font-semibold text-white truncate">{winnerUser?.username || w.winnerName}</p>
-                    <p className="text-xs text-slate-300 truncate">{w.topic}</p>
+                    <p className="text-xs font-bold text-indigo-200">{w.week}</p>
+                    <p className="text-base font-extrabold text-amber-200 truncate">
+                      <PlayerLink user={winnerUser} label={winnerUser?.username || w.winnerName} className="text-amber-200" />
+                    </p>
+                    <p className="text-xs text-slate-300 truncate">
+                      <span className="font-semibold text-fuchsia-200">Topic:</span> {w.topic}
+                    </p>
                   </div>
                   <Avatar
                     user={winnerUser || { emoji: '🏅' }}
@@ -69,6 +79,22 @@ export default function RightPanel() {
         )}
       </section>
 
+      {/* Results */}
+      {resultsText && (
+        <section className="pt-4 border-t border-white/10">
+          <h3 className="text-xs font-bold text-emerald-300 uppercase tracking-wider mb-3">📊 Results</h3>
+          <div className="bg-emerald-500/10 border border-emerald-300/20 rounded-2xl p-4 animate-slide-up">
+            <p className="text-sm text-slate-100 leading-snug whitespace-pre-wrap line-clamp-4">{resultsText}</p>
+            <button
+              onClick={() => setShowResults(true)}
+              className="mt-2 text-xs font-semibold text-emerald-300 hover:text-emerald-200 hover:underline"
+            >
+              Read full results →
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Motivational Quote */}
       {quote.text && (
         <section className="pt-4 mt-2 border-t border-white/10">
@@ -79,6 +105,12 @@ export default function RightPanel() {
             <p className="text-sm font-medium leading-snug">&ldquo;{quote.text}&rdquo;</p>
           </div>
         </section>
+      )}
+
+      {showResults && (
+        <Modal title="📊 Results" onClose={() => setShowResults(false)}>
+          <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap">{resultsText}</p>
+        </Modal>
       )}
     </aside>
   )

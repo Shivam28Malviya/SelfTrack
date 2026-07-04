@@ -5,6 +5,7 @@ import RightPanel from '../components/RightPanel'
 import AddPointsModal from '../components/AddPointsModal'
 import Avatar from '../components/Avatar'
 import KudosBar from '../components/KudosBar'
+import PlayerLink from '../components/PlayerLink'
 import { levelFromXp, currentStreak, projectMonthScore } from '../lib/gamification'
 import { downloadCsv } from '../lib/csv'
 import { useToast } from '../components/Toast'
@@ -22,6 +23,18 @@ function weekNumberSinceAnchor(d = new Date()) {
   return Math.floor(diffDays / 7) + 1
 }
 const currentMonthName = () => new Date().toLocaleString('default', { month: 'long' })
+
+// The monthly champion is only revealed once we've entered the final Mon–Sun
+// week of the month (the week that contains the month's last day).
+function isLastWeekOfMonth(d = new Date()) {
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  const mondayOfLastWeek = new Date(lastDay)
+  const dow = (lastDay.getDay() + 6) % 7 // 0 = Monday
+  mondayOfLastWeek.setDate(lastDay.getDate() - dow)
+  mondayOfLastWeek.setHours(0, 0, 0, 0)
+  const today = new Date(d); today.setHours(0, 0, 0, 0)
+  return today >= mondayOfLastWeek
+}
 
 const PODIUM_STYLES = {
   1: {
@@ -109,7 +122,7 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
           <Avatar user={user} className={`${large ? 'w-16 h-16 text-5xl' : 'w-10 h-10 text-3xl'} leading-none ring-2 ring-white/30`} />
           <div>
             <p className={`font-bold ${large ? 'text-xl' : 'text-base'} text-white leading-tight`}>
-              {isMe ? 'You' : user.username}
+              <PlayerLink user={user} self={isMe} className="text-white" />
               <span className="ml-1.5 text-xs font-bold text-indigo-200 align-middle">Lv{lvl.level}</span>
             </p>
             <p className={`${style.score} font-semibold ${large ? 'text-base' : 'text-sm'}`}>
@@ -147,6 +160,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState('')
 
   const ranked = getSortedByPeriod(period)
+  const maxPeriodScore = ranked[0]?.periodScore || 1
   const top3 = ranked.slice(0, 3)
   const rest = ranked.slice(3)
   const [first, second, third] = top3
@@ -155,7 +169,8 @@ export default function Dashboard() {
   const lastWeekRanks = getWeekRankMap(1)
 
   const weekChampion = getSortedByPeriod('week')[0]
-  const monthChampion = getSortedByPeriod('month')[0]
+  const monthChampion = isLastWeekOfMonth() ? getSortedByPeriod('month')[0] : null
+  const monthPending = !isLastWeekOfMonth()
 
   const currentUserRank = ranked.findIndex(u => u.id === currentUser?.id) + 1
   const myProjection = currentUser && !isAdmin ? projectMonthScore(currentUser.history) : 0
@@ -182,7 +197,7 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-6 animate-slide-down">
             <div>
-              <h1 className="text-3xl font-extrabold text-white">Leaderboard</h1>
+              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-amber-300 via-orange-300 to-fuchsia-300 bg-clip-text text-transparent">Leaderboard</h1>
               <p className="text-slate-200 mt-1">
                 {isAdmin
                   ? 'Admin view — manage all player scores.'
@@ -224,27 +239,31 @@ export default function Dashboard() {
           {/* Champion banners */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {weekChampion && (
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '80ms' }}>
+              <div className="flex items-center gap-3 bg-gradient-to-r from-indigo-500/20 to-transparent backdrop-blur-md border border-indigo-300/25 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '80ms' }}>
                 <span className="text-2xl animate-float">🏆</span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold text-indigo-200 uppercase tracking-wide">Week {weekNumberSinceAnchor()} Champion</p>
-                  <p className="text-sm font-semibold text-white">
-                    {weekChampion.emoji} {weekChampion.id === currentUser?.id ? 'You' : weekChampion.username}
+                  <p className="text-sm font-semibold text-amber-200 truncate">
+                    {weekChampion.emoji}{' '}
+                    <PlayerLink user={weekChampion} self={weekChampion.id === currentUser?.id} className="text-amber-100" />
                   </p>
                 </div>
               </div>
             )}
-            {monthChampion && (
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '160ms' }}>
-                <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
-                <div>
-                  <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">{currentMonthName()}'s Champion</p>
-                  <p className="text-sm font-semibold text-white">
-                    {monthChampion.emoji} {monthChampion.id === currentUser?.id ? 'You' : monthChampion.username}
+            <div className="flex items-center gap-3 bg-gradient-to-r from-violet-500/20 to-transparent backdrop-blur-md border border-violet-300/25 rounded-xl px-4 py-3 animate-slide-up hover:bg-white/15" style={{ animationDelay: '160ms' }}>
+              <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-violet-200 uppercase tracking-wide">{currentMonthName()}'s Champion</p>
+                {monthChampion ? (
+                  <p className="text-sm font-semibold text-fuchsia-200 truncate">
+                    {monthChampion.emoji}{' '}
+                    <PlayerLink user={monthChampion} self={monthChampion.id === currentUser?.id} className="text-fuchsia-100" />
                   </p>
-                </div>
+                ) : (
+                  <p className="text-sm font-medium text-slate-400 italic">Announced at month end ⏳</p>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Period tabs */}
@@ -343,14 +362,21 @@ export default function Dashboard() {
                       <Avatar user={user} className="w-9 h-9 text-2xl leading-none ring-1 ring-white/20 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-white text-sm truncate">
-                          {isMe ? 'You' : user.username}
+                          <PlayerLink user={user} self={isMe} className="text-white" />
                         </p>
-                        <p className="hidden sm:block text-slate-300 text-xs">{user.stats.wins} wins · {weeks} weeks played</p>
+                        {/* visual score bar (relative to leader) */}
+                        <div className="mt-1 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400"
+                            style={{ width: `${Math.max(4, Math.round((user.periodScore / maxPeriodScore) * 100))}%` }}
+                          />
+                        </div>
+                        <p className="hidden sm:block text-slate-400 text-xs mt-1">{user.stats.wins} wins · {weeks} weeks played</p>
                       </div>
                       <RankDelta userId={user.id} currentRanks={currentWeekRanks} lastRanks={lastWeekRanks} />
-                      <span className="text-white font-bold text-sm shrink-0">
+                      <span className="text-amber-200 font-bold text-sm shrink-0">
                         {user.periodScore.toLocaleString()}
-                        <span className="text-slate-300 font-normal text-xs ml-1">pts</span>
+                        <span className="text-slate-400 font-normal text-xs ml-1">pts</span>
                       </span>
                       {isStaff && <AddPointsInline userId={user.id} onOpen={setInlineTargetId} />}
                     </div>

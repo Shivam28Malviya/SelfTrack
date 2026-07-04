@@ -280,6 +280,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, ...state })
     }
 
+    if (route === '/meta/results' && method === 'POST') {
+      const actor = await requireAdmin(req)
+      await sql`update meta set results = ${JSON.stringify(req.body || {})}::jsonb where id = 1`
+      const state = await buildState(actor.id)
+      return res.status(200).json({ success: true, ...state })
+    }
+
     if (route === '/meta/categories' && method === 'POST') {
       const actor = await requireAdmin(req)
       const { name } = req.body || {}
