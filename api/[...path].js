@@ -128,6 +128,24 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, ...state })
       }
 
+      if (sub === '/username' && method === 'PATCH') {
+        const actor = await requireAdmin(req)
+        const { username } = req.body || {}
+        const u = (username || '').trim()
+        if (u.length < 3 || u.length > 20 || !/^[a-zA-Z0-9_]+$/.test(u)) throw new HttpError(400, 'Invalid username.')
+        const { rows: clash } = await sql`select id from users where lower(username) = lower(${u}) and id != ${targetId}`
+        if (clash.length) throw new HttpError(400, 'Username already taken.')
+        const { rows: prev } = await sql`select username from users where id = ${targetId}`
+        if (!prev[0]) throw new HttpError(404, 'User not found.')
+        await sql`update users set username = ${u} where id = ${targetId}`
+        // keep denormalized names in sync
+        await sql`update weekly_winners set winner_name = ${u} where winner_id = ${targetId}`
+        await sql`update kudos set from_name = ${u} where from_id = ${targetId}`
+        await pushNotif(targetId, `An admin changed your username from "${prev[0].username}" to "${u}".`, '✏️')
+        const state = await buildState(actor.id)
+        return res.status(200).json({ success: true, ...state })
+      }
+
       if (sub === '/role' && method === 'PATCH') {
         const actor = await requireAdmin(req)
         const { role } = req.body || {}

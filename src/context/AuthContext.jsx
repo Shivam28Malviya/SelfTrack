@@ -149,6 +149,11 @@ export function AuthProvider({ children }) {
     if (data.success) applyState(data)
     return data
   }
+  const changeUsername = async (id, username) => {
+    const data = await apiCall('PATCH', `/users/${id}/username`, { username })
+    if (data.success) applyState(data)
+    return data
+  }
   const setRole = async (id, role) => {
     const data = await apiCall('PATCH', `/users/${id}/role`, { role })
     if (data.success) applyState(data)
@@ -285,7 +290,7 @@ export function AuthProvider({ children }) {
         meta, notifications, isAdmin, isStaff, initializing,
         login, signup, createAccount, logout, resetPassword,
         addPoints, undoAudit, resetScores, endSeason,
-        approveUser, rejectUser, deleteUser, setRole, changePassword, setBio,
+        approveUser, rejectUser, deleteUser, setRole, changeUsername, changePassword, setBio,
         adminSetAvatar, requestAvatarChange, approveAvatar, rejectAvatar,
         sendKudos,
         getSortedByPeriod, getWeekRankMap,

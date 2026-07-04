@@ -10,12 +10,15 @@ export default function AnnouncementBanner() {
 
   return (
     <div className="fixed inset-x-0 top-16 lg:top-3 z-[70] flex justify-center px-4 pointer-events-none animate-slide-down">
-      <div className="pointer-events-auto w-full max-w-lg bg-gradient-to-r from-amber-500/95 to-orange-500/95 text-white pl-4 pr-2 py-2.5 rounded-2xl shadow-2xl flex items-start gap-3 border border-amber-300/40 backdrop-blur-md">
-        <span className="text-lg shrink-0 mt-0.5">📢</span>
-        <p className="text-sm font-medium leading-snug flex-1">{a.text}</p>
+      <div className="pointer-events-auto w-full max-w-lg bg-white border border-neutral-200 pl-2 pr-2 py-2 rounded-2xl shadow-[0_16px_50px_-24px_rgba(27,26,23,0.45)] flex items-start gap-3">
+        <span className="shrink-0 w-8 h-8 rounded-xl bg-[#f3ece3] border border-[#e0cdb6] flex items-center justify-center text-base">📢</span>
+        <div className="flex-1 min-w-0 py-0.5">
+          <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#a97e5d]">Announcement</p>
+          <p className="text-sm font-medium leading-snug text-neutral-800">{a.text}</p>
+        </div>
         <button
           onClick={() => setDismissed(true)}
-          className="text-white/80 hover:text-white w-7 h-7 rounded-full hover:bg-white/20 text-lg leading-none flex items-center justify-center shrink-0"
+          className="text-neutral-400 hover:text-neutral-900 w-7 h-7 rounded-full hover:bg-neutral-100 text-lg leading-none flex items-center justify-center shrink-0"
           aria-label="Dismiss announcement"
         >
           ×

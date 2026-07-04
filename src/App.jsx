@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -24,17 +24,20 @@ function Authed({ children }) {
 
 export default function App() {
   const { currentUser, initializing } = useAuth()
+  const location = useLocation()
 
   if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <span className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        <span className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <Routes>
+    // Keyed on pathname so every route change replays the enter transition.
+    <div key={location.pathname} className="page-transition">
+      <Routes location={location}>
       <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/signup" element={currentUser ? <Navigate to="/" replace /> : <Signup />} />
       <Route path="/forgot-password" element={currentUser ? <Navigate to="/" replace /> : <ForgotPassword />} />
@@ -45,6 +48,7 @@ export default function App() {
       <Route path="/hall-of-fame" element={<Authed><HallOfFame /></Authed>} />
       <Route path="/settings" element={<Authed><Settings /></Authed>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
+import Wordmark from '../components/Wordmark'
 
 export default function Login() {
   const { login } = useAuth()
@@ -44,7 +45,9 @@ export default function Login() {
       {/* Editorial wordmark */}
       <div className="w-full max-w-md mb-6 text-center animate-slide-up">
         <span className="eyebrow">Gamified progress</span>
-        <h1 className="display text-6xl sm:text-7xl text-neutral-900 mt-2">SELFTRACK</h1>
+        <h1 className="display text-6xl sm:text-7xl text-neutral-900 mt-2">
+          <Wordmark text="SELFTRACK" />
+        </h1>
       </div>
 
       <div className="w-full max-w-md animate-slide-up">

@@ -100,6 +100,27 @@ button, a, input, select, textarea {
   font-weight: 800;
 }
 
+/* Letter-by-letter wordmark reveal (dribbble-style type animation) */
+@keyframes letterIn {
+  0% { opacity: 0; transform: translateY(0.6em) rotate(6deg) scale(0.8); filter: blur(4px); }
+  60% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+}
+.letter-reveal { display: inline-block; }
+.letter-reveal span {
+  display: inline-block;
+  animation: letterIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Page transition on route change */
+@keyframes pageIn {
+  0% { opacity: 0; transform: translateY(14px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.page-transition {
+  animation: pageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Explicit shimmer keyframe */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

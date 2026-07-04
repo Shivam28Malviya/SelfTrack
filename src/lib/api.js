@@ -15,6 +15,14 @@ export async function apiCall(method, path, body) {
     return { success: false, error: 'Network error. Check your connection.' }
   }
 
+  // Session expired or revoked (30-min TTL) — clear it and send the user
+  // back to login. Auth endpoints are exempt (401 there = wrong credentials).
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    setToken(null)
+    window.location.assign('/login')
+    return { success: false, error: 'Session expired. Please sign in again.' }
+  }
+
   try {
     return await res.json()
   } catch {
