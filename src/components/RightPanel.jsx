@@ -71,8 +71,7 @@ export default function RightPanel() {
 
       {/* Motivational Quote */}
       {quote.text && (
-        <section>
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Daily Motivation</h3>
+        <section className="pt-4 mt-2 border-t border-white/10">
           <div className="bg-gradient-to-br from-indigo-600/70 to-violet-600/70 backdrop-blur-md rounded-2xl p-4 text-white border border-white/10 animate-slide-up shadow-xl shadow-indigo-500/20" style={{ animationDelay: '400ms' }}>
             {quote.image && (
               <img src={quote.image} alt="quote" className="w-full h-28 object-cover rounded-lg mb-3" />

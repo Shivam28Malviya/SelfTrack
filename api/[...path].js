@@ -196,7 +196,7 @@ export default async function handler(req, res) {
       if (!rows[0]) throw new HttpError(404, 'User not found.')
       const cat = category || 'General'
       await sql`insert into history (user_id, date, points, category) values (${userId}, now(), ${pts}, ${cat})`
-      await sql`update users set score = score + ${pts}, wins = wins + 1 where id = ${userId}`
+      await sql`update users set score = score + ${pts} where id = ${userId}`
       await pushNotif(userId, `You received +${pts} points (${cat}).`, '⭐')
       await insertAudit({ actorId: actor.id, actorName: actor.username, action: 'addPoints', userId, userName: rows[0].username, points: pts, category: cat })
       const state = await buildState(actor.id)
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
         order by date desc limit 1
       `
       if (histRows[0]) await sql`delete from history where id = ${histRows[0].id}`
-      await sql`update users set score = greatest(0, score - ${entry.points}), wins = greatest(0, wins - 1) where id = ${entry.user_id}`
+      await sql`update users set score = greatest(0, score - ${entry.points}) where id = ${entry.user_id}`
       await sql`update audit_log set undone = true where id = ${auditId}`
       await pushNotif(entry.user_id, `An award of +${entry.points} was reverted.`, '↩️')
       const state = await buildState(actor.id)
@@ -328,6 +328,7 @@ export default async function handler(req, res) {
       const actor = await requireAdmin(req)
       const { week, topic, winnerId, winnerName } = req.body || {}
       await sql`insert into weekly_winners (week, topic, winner_id, winner_name) values (${week}, ${topic}, ${winnerId}, ${winnerName})`
+      if (winnerId) await sql`update users set wins = wins + 1 where id = ${winnerId}`
       const state = await buildState(actor.id)
       return res.status(200).json({ success: true, ...state })
     }
@@ -335,7 +336,9 @@ export default async function handler(req, res) {
     const winnerMatch = route.match(/^\/meta\/weekly-winners\/([^/]+)$/)
     if (winnerMatch && method === 'DELETE') {
       const actor = await requireAdmin(req)
+      const { rows: removed } = await sql`select winner_id from weekly_winners where id = ${winnerMatch[1]}`
       await sql`delete from weekly_winners where id = ${winnerMatch[1]}`
+      if (removed[0]?.winner_id) await sql`update users set wins = greatest(0, wins - 1) where id = ${removed[0].winner_id}`
       const state = await buildState(actor.id)
       return res.status(200).json({ success: true, ...state })
     }
