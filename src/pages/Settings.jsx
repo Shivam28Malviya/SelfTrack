@@ -296,7 +296,8 @@ export default function Settings() {
     else toast(result.error, 'error')
   }
 
-  const nonAdminUsers = users.filter(u => u.role !== 'admin' && u.status === 'approved')
+  // Eligible weekly-winner picks: approved, scoring participants (no admins/spectators).
+  const nonAdminUsers = users.filter(u => u.role !== 'admin' && u.role !== 'spectator' && u.status === 'approved')
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -455,6 +456,7 @@ export default function Settings() {
                           <option value="user" className="bg-white text-slate-900">user</option>
                           <option value="moderator" className="bg-white text-slate-900">moderator</option>
                           <option value="admin" className="bg-white text-slate-900">admin</option>
+                          <option value="spectator" className="bg-white text-slate-900">spectator</option>
                         </select>
                         <PasswordCell user={u} onSave={changePassword} />
                         <button
@@ -508,6 +510,7 @@ export default function Settings() {
                     <option value="user" className="bg-white text-slate-900">User</option>
                     <option value="moderator" className="bg-white text-slate-900">Moderator</option>
                     <option value="admin" className="bg-white text-slate-900">Admin</option>
+                    <option value="spectator" className="bg-white text-slate-900">Spectator</option>
                   </select>
                   <button
                     type="submit"

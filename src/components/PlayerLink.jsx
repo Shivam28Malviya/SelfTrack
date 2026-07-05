@@ -1,10 +1,15 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 // Renders a player's name. Links to their profile unless they're an admin
-// (admin profiles are private) or the record is missing. `self` shows "You".
+// (admin profiles are private), a spectator the viewer isn't allowed to see,
+// or the record is missing. `self` shows "You".
 export default function PlayerLink({ user, self = false, className = '', label }) {
+  const { canSeeSpectators } = useAuth()
   const text = label ?? (self ? 'You' : user?.username)
-  const linkable = user && user.role !== 'admin'
+
+  const isSpectatorHidden = user?.role === 'spectator' && !self && !canSeeSpectators
+  const linkable = user && user.role !== 'admin' && !isSpectatorHidden
 
   if (!linkable) return <span className={className}>{text}</span>
 

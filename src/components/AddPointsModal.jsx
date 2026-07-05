@@ -10,7 +10,7 @@ const QUICK_AMOUNTS = [10, 25, 50, 100]
 export default function AddPointsModal({ onClose, targetUserId }) {
   const { users, addPoints, meta } = useAuth()
   const { toast } = useToast()
-  const nonAdminUsers = users.filter(u => u.role !== 'admin' && u.status === 'approved')
+  const nonAdminUsers = users.filter(u => u.role !== 'admin' && u.role !== 'spectator' && u.status === 'approved')
   const categories = meta.categories || ['General']
 
   const [selectedUserId, setSelectedUserId] = useState(targetUserId || '')
@@ -31,7 +31,7 @@ export default function AddPointsModal({ onClose, targetUserId }) {
     e.preventDefault()
     const pts = parseInt(amount, 10)
     if (!selectedUserId) return setError('Select a user.')
-    if (!target || target.role === 'admin' || target.status !== 'approved') return setError('Invalid recipient.')
+    if (!target || target.role === 'admin' || target.role === 'spectator' || target.status !== 'approved') return setError('Invalid recipient.')
     if (!Number.isFinite(pts) || pts <= 0) return setError('Enter a positive number.')
     if (pts > 10000) return setError('Maximum 10,000 points per add.')
     const before = levelFromXp(target.score).level

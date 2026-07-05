@@ -264,7 +264,8 @@ export function AuthProvider({ children }) {
   }
 
   // ---- derived collections ----
-  const approvedUsers = users.filter(u => u.role !== 'admin' && u.status === 'approved')
+  // Leaderboard participants: approved, non-admin, non-spectator.
+  const approvedUsers = users.filter(u => u.role !== 'admin' && u.role !== 'spectator' && u.status === 'approved')
   const pendingUsers = users.filter(u => u.status === 'pending')
   const pendingAvatarUsers = users.filter(u => u.pendingAvatar)
   const sortedUsers = [...approvedUsers].sort((a, b) => b.score - a.score)
@@ -286,12 +287,15 @@ export function AuthProvider({ children }) {
 
   const isAdmin = currentUser?.role === 'admin'
   const isStaff = currentUser?.role === 'admin' || currentUser?.role === 'moderator'
+  const isSpectator = currentUser?.role === 'spectator'
+  // Who is allowed to see spectator accounts. Regular users cannot.
+  const canSeeSpectators = ['admin', 'moderator', 'spectator'].includes(currentUser?.role)
 
   return (
     <AuthContext.Provider
       value={{
         currentUser, users, sortedUsers, approvedUsers, pendingUsers, pendingAvatarUsers,
-        meta, notifications, isAdmin, isStaff, initializing,
+        meta, notifications, isAdmin, isStaff, isSpectator, canSeeSpectators, initializing,
         login, signup, createAccount, logout, resetPassword,
         addPoints, undoAudit, resetScores, endSeason,
         approveUser, rejectUser, deleteUser, setRole, changeUsername, changePassword, setBio,

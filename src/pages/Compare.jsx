@@ -76,6 +76,10 @@ export default function Compare() {
           ) : (
             <p className="text-neutral-400 text-center py-10">Pick two players to compare.</p>
           )}
+
+          <div className="xl:hidden mt-12 pt-8 border-t border-neutral-200">
+            <RightPanel inline />
+          </div>
         </div>
       </main>
       <RightPanel />

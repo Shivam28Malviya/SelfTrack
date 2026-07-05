@@ -6,7 +6,7 @@ create table if not exists users (
   username text unique not null,
   email text unique not null,
   password_hash text not null,
-  role text not null default 'user' check (role in ('user', 'moderator', 'admin')),
+  role text not null default 'user' check (role in ('user', 'moderator', 'admin', 'spectator')),
   status text not null default 'pending' check (status in ('pending', 'approved')),
   score int not null default 0,
   wins int not null default 0,

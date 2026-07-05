@@ -37,9 +37,24 @@ function isLastWeekOfMonth(d = new Date()) {
 }
 
 const PODIUM_STYLES = {
-  1: { wrapper: 'bg-[#f3ece3] border border-[#e0cdb6]', badge: 'bg-[#a97e5d] text-white', accent: 'text-[#8a6446]' },
-  2: { wrapper: 'bg-white border border-neutral-200', badge: 'bg-neutral-800 text-white', accent: 'text-neutral-600' },
-  3: { wrapper: 'bg-white border border-neutral-200', badge: 'bg-neutral-500 text-white', accent: 'text-neutral-600' },
+  1: {
+    wrapper: 'bg-[#f3ece3] border border-[#e0cdb6]',
+    badge: 'bg-[#a97e5d] text-white', accent: 'text-[#8a6446]',
+    glow: 'radial-gradient(circle at 100% 0%, rgba(216,171,106,0.45), transparent 55%)',
+    watermark: '🥇',
+  },
+  2: {
+    wrapper: 'bg-white border border-neutral-200',
+    badge: 'bg-neutral-800 text-white', accent: 'text-neutral-600',
+    glow: 'radial-gradient(circle at 100% 0%, rgba(150,155,165,0.35), transparent 55%)',
+    watermark: '🥈',
+  },
+  3: {
+    wrapper: 'bg-white border border-neutral-200',
+    badge: 'bg-neutral-500 text-white', accent: 'text-neutral-600',
+    glow: 'radial-gradient(circle at 100% 0%, rgba(200,140,90,0.32), transparent 55%)',
+    watermark: '🥉',
+  },
 }
 
 const PERIODS = [
@@ -81,9 +96,18 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
     <>
       <div
         style={{ animationDelay: `${delay}ms` }}
-        className={`rounded-[24px] ${style.wrapper} ${large ? 'p-6' : 'p-4'} flex flex-col gap-3 relative animate-slide-up shadow-[0_10px_40px_-28px_rgba(27,26,23,0.5)] hover:-translate-y-1 transition-transform ${isMe ? 'ring-2 ring-[#a97e5d]/50' : ''}`}
+        className={`rounded-[24px] ${style.wrapper} ${large ? 'p-6' : 'p-4'} flex flex-col gap-3 relative overflow-hidden animate-slide-up shadow-[0_10px_40px_-28px_rgba(27,26,23,0.5)] hover:-translate-y-1 transition-transform ${isMe ? 'ring-2 ring-[#a97e5d]/50' : ''}`}
       >
-        <div className="flex items-center justify-between">
+        {/* rank-based decorative background */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: style.glow }} />
+        <span
+          className={`absolute -bottom-3 -right-1 pointer-events-none select-none opacity-[0.08] ${large ? 'text-[9rem]' : 'text-[6rem]'} leading-none`}
+          aria-hidden="true"
+        >
+          {style.watermark}
+        </span>
+
+        <div className="relative flex items-center justify-between">
           <span className={`${style.badge} text-xs font-bold px-2.5 py-1 rounded-full`}>
             {RANK_MEDALS[rank]} #{rank}
           </span>
@@ -101,7 +125,7 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <Avatar user={user} className={`${large ? 'w-16 h-16 text-5xl' : 'w-10 h-10 text-3xl'} leading-none ring-2 ring-black/5`} />
           <div>
             <p className={`font-bold ${large ? 'text-xl' : 'text-base'} text-neutral-900 leading-tight`}>
@@ -114,18 +138,18 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
           </div>
         </div>
 
-        <div className="flex gap-3 mt-1">
-          <div className="bg-black/[0.04] rounded-2xl px-3 py-2 text-center flex-1">
+        <div className="relative flex gap-3 mt-1">
+          <div className="bg-white/70 border border-white/60 rounded-2xl px-3 py-2 text-center flex-1 backdrop-blur-sm">
             <p className="text-lg font-bold text-neutral-900">{user.stats.wins}</p>
             <p className="text-xs text-neutral-500 font-medium">Wins</p>
           </div>
-          <div className="bg-black/[0.04] rounded-2xl px-3 py-2 text-center flex-1">
+          <div className="bg-white/70 border border-white/60 rounded-2xl px-3 py-2 text-center flex-1 backdrop-blur-sm">
             <p className="text-lg font-bold text-neutral-900">{weeks}</p>
             <p className="text-xs text-neutral-500 font-medium">Weeks Played</p>
           </div>
         </div>
 
-        {large && <KudosBar user={user} />}
+        {large && <div className="relative"><KudosBar user={user} /></div>}
       </div>
 
       {modal && <AddPointsModal onClose={() => setModal(false)} targetUserId={user.id} />}
@@ -134,7 +158,7 @@ function PodiumCard({ user, rank, large = false, canAward, isMe, currentRanks, l
 }
 
 export default function Dashboard() {
-  const { currentUser, getSortedByPeriod, getWeekRankMap, isStaff, isAdmin } = useAuth()
+  const { currentUser, users, meta, getSortedByPeriod, getWeekRankMap, isStaff, isAdmin, isSpectator } = useAuth()
   const { toast } = useToast()
   const [period, setPeriod] = useState('month')
   const [modal, setModal] = useState(false)
@@ -150,7 +174,16 @@ export default function Dashboard() {
   const currentWeekRanks = getWeekRankMap(0)
   const lastWeekRanks = getWeekRankMap(1)
 
-  const weekChampion = getSortedByPeriod('week')[0]
+  // Week champion is the admin-declared weekly winner for the current week
+  // (matched by the number in the week label), NOT the raw top scorer.
+  const curWeekNum = weekNumberSinceAnchor()
+  const weekWinnerEntry = (meta.weeklyWinners || []).find(w => {
+    const n = parseInt((String(w.week).match(/\d+/) || [])[0], 10)
+    return n === curWeekNum
+  })
+  const weekChampion = weekWinnerEntry
+    ? (users.find(u => u.id === weekWinnerEntry.winnerId) || { username: weekWinnerEntry.winnerName, emoji: '🏅', id: weekWinnerEntry.winnerId })
+    : null
   const monthChampion = isLastWeekOfMonth() ? getSortedByPeriod('month')[0] : null
 
   const currentUserRank = ranked.findIndex(u => u.id === currentUser?.id) + 1
@@ -183,6 +216,8 @@ export default function Dashboard() {
               <p className="text-neutral-500 mt-2 max-w-md">
                 {isAdmin
                   ? 'Admin view — manage all player scores.'
+                  : isSpectator
+                  ? 'Spectator view — you can browse but not compete.'
                   : currentUserRank > 0
                   ? `You're ranked #${currentUserRank} this ${period === 'all' ? 'time' : period}. Keep pushing.`
                   : 'Track your progress. Climb the ranks.'}
@@ -209,18 +244,20 @@ export default function Dashboard() {
 
           {/* Champion banners */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-            {weekChampion && (
-              <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '80ms' }}>
-                <span className="text-2xl animate-float">🏆</span>
-                <div className="min-w-0">
-                  <p className="eyebrow">Week {weekNumberSinceAnchor()} Champion</p>
+            <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '80ms' }}>
+              <span className="text-2xl animate-float">🏆</span>
+              <div className="min-w-0">
+                <p className="eyebrow">Week {curWeekNum} Champion</p>
+                {weekChampion ? (
                   <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
                     {weekChampion.emoji}{' '}
                     <PlayerLink user={weekChampion} self={weekChampion.id === currentUser?.id} className="text-neutral-900" />
                   </p>
-                </div>
+                ) : (
+                  <p className="text-sm font-medium text-neutral-400 italic mt-0.5">Winner not declared yet ⏳</p>
+                )}
               </div>
-            )}
+            </div>
             <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '160ms' }}>
               <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
               <div className="min-w-0">
@@ -352,6 +389,11 @@ export default function Dashboard() {
               <p className="font-medium">No players yet. Sign up to be first!</p>
             </div>
           )}
+
+          {/* Right-panel content, surfaced inline on screens without the side panel */}
+          <div className="xl:hidden mt-12 pt-8 border-t border-neutral-200">
+            <RightPanel inline />
+          </div>
         </div>
       </main>
 

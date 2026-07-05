@@ -26,15 +26,22 @@ function RewardCard({ place, data, delay }) {
   )
 }
 
-export default function RightPanel() {
+export default function RightPanel({ inline = false }) {
   const { meta, users } = useAuth()
   const { rewards, quote, results, weeklyWinners } = meta
   const [showResults, setShowResults] = useState(false)
 
   const resultsText = results?.text || ''
 
+  // `inline` mode is used to surface the same content below the leaderboard
+  // on small screens, where the fixed side panel is hidden.
+  const Tag = inline ? 'div' : 'aside'
+  const wrapperClass = inline
+    ? 'w-full space-y-7'
+    : 'hidden xl:block w-80 shrink-0 border-l border-neutral-200 bg-white overflow-y-auto px-5 py-8 space-y-7 animate-slide-in-right'
+
   return (
-    <aside className="hidden xl:block w-80 shrink-0 border-l border-neutral-200 bg-white overflow-y-auto px-5 py-8 space-y-7 animate-slide-in-right">
+    <Tag className={wrapperClass}>
       {/* Monthly Rewards */}
       <section>
         <h3 className="eyebrow mb-3">🎁 Monthly Rewards</h3>
@@ -112,6 +119,6 @@ export default function RightPanel() {
           <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">{resultsText}</p>
         </Modal>
       )}
-    </aside>
+    </Tag>
   )
 }

@@ -19,14 +19,19 @@ function startOfWeekLabel(ts) {
 
 export default function Profile() {
   const { id: viewId } = useParams()
-  const { currentUser, users, sortedUsers, requestAvatarChange, adminSetAvatar, changePassword, setBio } = useAuth()
+  const { currentUser, users, sortedUsers, canSeeSpectators, requestAvatarChange, adminSetAvatar, changePassword, setBio } = useAuth()
   const { toast } = useToast()
 
   const targetUser = viewId ? users.find(u => u.id === viewId) : currentUser
   const isSelf = targetUser?.id === currentUser?.id
 
-  // Acted on after all hooks (keeps hook order stable).
-  const blocked = !!viewId && (!targetUser || (targetUser.role === 'admin' && !isSelf))
+  // Acted on after all hooks (keeps hook order stable). Admin profiles are
+  // private; spectator profiles are hidden from regular users.
+  const blocked = !!viewId && (
+    !targetUser ||
+    (targetUser.role === 'admin' && !isSelf) ||
+    (targetUser.role === 'spectator' && !isSelf && !canSeeSpectators)
+  )
 
   const rank = sortedUsers.findIndex(u => u.id === targetUser?.id) + 1
   const isAdminProfile = targetUser?.role === 'admin'

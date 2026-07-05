@@ -89,6 +89,7 @@ export default async function handler(req, res) {
       if (u.length < 3 || u.length > 20 || !/^[a-zA-Z0-9_]+$/.test(u)) throw new HttpError(400, 'Invalid username.')
       if (!emailRe.test(em)) throw new HttpError(400, 'Invalid email.')
       if (!password || password.length < 6) throw new HttpError(400, 'Password must be at least 6 characters.')
+      if (role && !['user', 'moderator', 'admin', 'spectator'].includes(role)) throw new HttpError(400, 'Invalid role.')
       const { rows: existing } = await sql`select id from users where email = ${em} or lower(username) = lower(${u})`
       if (existing.length) throw new HttpError(400, 'Email or username already registered.')
       const hash = await hashPassword(password)
@@ -149,7 +150,7 @@ export default async function handler(req, res) {
       if (sub === '/role' && method === 'PATCH') {
         const actor = await requireAdmin(req)
         const { role } = req.body || {}
-        if (!['user', 'moderator', 'admin'].includes(role)) throw new HttpError(400, 'Invalid role.')
+        if (!['user', 'moderator', 'admin', 'spectator'].includes(role)) throw new HttpError(400, 'Invalid role.')
         await sql`update users set role = ${role} where id = ${targetId}`
         const state = await buildState(actor.id)
         return res.status(200).json({ success: true, ...state })
@@ -210,8 +211,10 @@ export default async function handler(req, res) {
       const { userId, points, category } = req.body || {}
       const pts = parseInt(points, 10)
       if (!Number.isFinite(pts) || pts <= 0 || pts > 10000) throw new HttpError(400, 'Invalid point amount.')
-      const { rows } = await sql`select username from users where id = ${userId}`
+      const { rows } = await sql`select username, role from users where id = ${userId}`
       if (!rows[0]) throw new HttpError(404, 'User not found.')
+      if (rows[0].role === 'spectator') throw new HttpError(400, 'Spectators cannot receive points.')
+      if (rows[0].role === 'admin') throw new HttpError(400, 'Admins are not on the leaderboard.')
       const cat = category || 'General'
       await sql`insert into history (user_id, date, points, category) values (${userId}, now(), ${pts}, ${cat})`
       await sql`update users set score = score + ${pts} where id = ${userId}`
@@ -352,6 +355,10 @@ export default async function handler(req, res) {
     if (route === '/meta/weekly-winners' && method === 'POST') {
       const actor = await requireAdmin(req)
       const { week, topic, winnerId, winnerName } = req.body || {}
+      if (winnerId) {
+        const { rows: wr } = await sql`select role from users where id = ${winnerId}`
+        if (wr[0]?.role === 'spectator') throw new HttpError(400, 'Spectators cannot be weekly winners.')
+      }
       await sql`insert into weekly_winners (week, topic, winner_id, winner_name) values (${week}, ${topic}, ${winnerId}, ${winnerName})`
       if (winnerId) await sql`update users set wins = wins + 1 where id = ${winnerId}`
       const state = await buildState(actor.id)
