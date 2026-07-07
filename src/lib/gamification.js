@@ -1,9 +1,10 @@
 // Pure gamification helpers — no deps, derived from user data.
 
+// Weeks run Monday–Sunday (consistent with AuthContext + week numbering).
 function startOfWeek(ts) {
   const d = new Date(ts)
   d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() - d.getDay())
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
   return d.getTime()
 }
 

@@ -27,7 +27,9 @@ export default function AddPointsModal({ onClose, targetUserId }) {
 
   const target = users.find(u => u.id === selectedUserId)
 
-  const handleSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const pts = parseInt(amount, 10)
     if (!selectedUserId) return setError('Select a user.')
@@ -36,7 +38,10 @@ export default function AddPointsModal({ onClose, targetUserId }) {
     if (pts > 10000) return setError('Maximum 10,000 points per add.')
     const before = levelFromXp(target.score).level
     const after = levelFromXp(target.score + pts).level
-    addPoints(selectedUserId, pts, category)
+    setSubmitting(true)
+    const result = await addPoints(selectedUserId, pts, category)
+    setSubmitting(false)
+    if (!result.success) return setError(result.error || 'Failed to award points.')
     if (after > before) {
       playLevelUp()
       fireConfetti({ particleCount: 200, duration: 2200 })
@@ -145,9 +150,10 @@ export default function AddPointsModal({ onClose, targetUserId }) {
 
           <button
             type="submit"
-            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-3 rounded-full text-sm active:scale-[0.98]"
+            disabled={submitting}
+            className="w-full bg-neutral-900 hover:bg-neutral-800 disabled:opacity-60 text-white font-semibold py-3 rounded-full text-sm active:scale-[0.98]"
           >
-            Add Points  ↗
+            {submitting ? 'Awarding…' : 'Add Points  ↗'}
           </button>
         </form>
       </div>

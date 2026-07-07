@@ -49,12 +49,11 @@ export default function Profile() {
     const WEEK = 7 * 86400000
     const now = Date.now()
     const buckets = []
+    const monday = (t) => { const x = new Date(t); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getTime() }
     for (let i = 7; i >= 0; i--) {
-      const start = now - i * WEEK
-      const d = new Date(start); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay())
-      const ws = d.getTime()
+      const ws = monday(now - i * WEEK)
       const value = (targetUser?.history || [])
-        .filter(h => { const x = new Date(h.date); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x.getTime() === ws })
+        .filter(h => monday(h.date) === ws)
         .reduce((s, h) => s + h.points, 0)
       buckets.push({ label: startOfWeekLabel(ws), value })
     }

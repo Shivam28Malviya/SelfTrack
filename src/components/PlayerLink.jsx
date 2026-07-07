@@ -9,7 +9,9 @@ export default function PlayerLink({ user, self = false, className = '', label }
   const text = label ?? (self ? 'You' : user?.username)
 
   const isSpectatorHidden = user?.role === 'spectator' && !self && !canSeeSpectators
-  const linkable = user && user.role !== 'admin' && !isSpectatorHidden
+  // Requires a real user record (id + role) — winner-name fallbacks for
+  // deleted users render as plain text instead of a dead link.
+  const linkable = user?.id && user.role && user.role !== 'admin' && !isSpectatorHidden
 
   if (!linkable) return <span className={className}>{text}</span>
 

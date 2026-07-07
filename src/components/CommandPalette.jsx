@@ -1,14 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 import { isMuted, setMuted } from '../lib/sound'
 
 // Mounts once for authed users. Handles: Cmd/Ctrl+K palette, g-chords, "/", "?".
 export default function CommandPalette() {
   const navigate = useNavigate()
   const { logout, isStaff } = useAuth()
-  const { toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
   const [q, setQ] = useState('')
@@ -22,12 +20,11 @@ export default function CommandPalette() {
       { id: 'nav-compare', label: 'Compare Players', icon: '⚖️', run: () => navigate('/compare') },
       { id: 'nav-hall', label: 'Hall of Fame', icon: '🏛️', run: () => navigate('/hall-of-fame') },
       { id: 'nav-settings', label: 'Go to Settings', icon: '⚙️', run: () => navigate('/settings') },
-      { id: 'theme', label: 'Toggle theme', icon: '🎨', run: () => toggle() },
       { id: 'mute', label: isMuted() ? 'Unmute sounds' : 'Mute sounds', icon: '🔊', run: () => setMuted(!isMuted()) },
       { id: 'logout', label: 'Sign out', icon: '🚪', run: () => { logout(); navigate('/login') } },
     ]
     return base
-  }, [navigate, toggle, logout])
+  }, [navigate, logout])
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()

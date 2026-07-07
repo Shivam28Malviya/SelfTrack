@@ -276,6 +276,8 @@ export default async function handler(req, res) {
       const actor = await requireAuth(req)
       const { targetId, emoji } = req.body || {}
       if (!targetId || targetId === actor.id) throw new HttpError(400, 'Invalid target.')
+      const { rows: kt } = await sql`select role from users where id = ${targetId}`
+      if (!kt[0] || kt[0].role === 'admin' || kt[0].role === 'spectator') throw new HttpError(400, 'Invalid target.')
       await sql`
         insert into kudos (user_id, from_id, from_name, emoji)
         values (${targetId}, ${actor.id}, ${actor.username}, ${emoji})
