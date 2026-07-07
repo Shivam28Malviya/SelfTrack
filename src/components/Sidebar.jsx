@@ -11,6 +11,7 @@ const NAV = [
   { to: '/profile', label: 'Profile', icon: '👤' },
   { to: '/compare', label: 'Compare', icon: '⚖️' },
   { to: '/hall-of-fame', label: 'Hall of Fame', icon: '🏛️' },
+  { to: '/files', label: 'Files', icon: '🗂️', adminOnly: true },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
@@ -82,7 +83,7 @@ export default function Sidebar() {
 
         {/* Nav links */}
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map(({ to, label, icon }, i) => (
+          {NAV.filter(item => !item.adminOnly || currentUser?.role === 'admin').map(({ to, label, icon }, i) => (
             <NavLink
               key={to}
               to={to}

@@ -81,6 +81,16 @@ create table if not exists weekly_winners (
   created_at timestamptz not null default now()
 );
 
+create table if not exists files (
+  id bigserial primary key,
+  name text not null,
+  url text not null,
+  size bigint not null default 0,
+  content_type text not null default '',
+  uploaded_by text not null default '',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists meta (
   id int primary key default 1 check (id = 1),
   rewards jsonb not null default '{"first":{"text":"","image":""},"second":{"text":"","image":""}}',

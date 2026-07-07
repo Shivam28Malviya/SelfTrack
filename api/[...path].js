@@ -1,3 +1,5 @@
+import { del } from '@vercel/blob'
+import { handleUpload } from '@vercel/blob/client'
 import { sql } from '../lib/db.js'
 import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from '../lib/auth.js'
 import { buildState, pushNotif } from '../lib/state.js'
@@ -11,6 +13,16 @@ async function insertAudit({ actorId, actorName, action, userId, userName, point
     insert into audit_log (actor_id, actor_name, action, user_id, user_name, points, category)
     values (${actorId}, ${actorName}, ${action}, ${userId}, ${userName}, ${points}, ${category})
   `
+}
+
+const rowToFile = (f) => ({
+  id: String(f.id), name: f.name, url: f.url, size: Number(f.size),
+  contentType: f.content_type, uploadedBy: f.uploaded_by, ts: new Date(f.created_at).getTime(),
+})
+
+async function listFiles() {
+  const { rows } = await sql`select * from files order by created_at desc`
+  return rows.map(rowToFile)
 }
 
 async function resetAllScores() {
@@ -269,6 +281,56 @@ export default async function handler(req, res) {
       await resetAllScores()
       const state = await buildState(actor.id)
       return res.status(200).json({ success: true, ...state })
+    }
+
+    // ---- files (admin) ----
+    // Token exchange for direct browser -> Blob uploads (bypasses the 4.5MB
+    // serverless body limit). The client sends its session token as
+    // clientPayload; we validate it against an unexpired admin session here
+    // since the blob client doesn't forward our Authorization header.
+    if (route === '/files/upload' && method === 'POST') {
+      const jsonResponse = await handleUpload({
+        body: req.body,
+        request: req,
+        onBeforeGenerateToken: async (pathname, clientPayload) => {
+          const { rows } = await sql`
+            select u.role from sessions s join users u on u.id = s.user_id
+            where s.token = ${clientPayload || ''} and s.created_at > now() - interval '30 minutes'
+          `
+          if (!rows[0] || rows[0].role !== 'admin') throw new Error('Admin access required.')
+          return { maximumSizeInBytes: 100 * 1024 * 1024, addRandomSuffix: true }
+        },
+        onUploadCompleted: async () => {},
+      })
+      return res.status(200).json(jsonResponse)
+    }
+
+    if (route === '/files' && method === 'GET') {
+      await requireAdmin(req)
+      return res.status(200).json({ success: true, files: await listFiles() })
+    }
+
+    if (route === '/files' && method === 'POST') {
+      const actor = await requireAdmin(req)
+      const { name, url, size, contentType } = req.body || {}
+      if (!name || !url) throw new HttpError(400, 'Missing file info.')
+      if (!/^https:\/\/[^/]*blob\.vercel-storage\.com\//.test(url)) throw new HttpError(400, 'Invalid file URL.')
+      await sql`
+        insert into files (name, url, size, content_type, uploaded_by)
+        values (${name}, ${url}, ${parseInt(size, 10) || 0}, ${contentType || ''}, ${actor.username})
+      `
+      return res.status(200).json({ success: true, files: await listFiles() })
+    }
+
+    const fileMatch = route.match(/^\/files\/(\d+)$/)
+    if (fileMatch && method === 'DELETE') {
+      await requireAdmin(req)
+      const { rows } = await sql`select url from files where id = ${fileMatch[1]}`
+      if (rows[0]) {
+        try { await del(rows[0].url) } catch { /* blob already gone — still drop the row */ }
+      }
+      await sql`delete from files where id = ${fileMatch[1]}`
+      return res.status(200).json({ success: true, files: await listFiles() })
     }
 
     // ---- kudos ----
