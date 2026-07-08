@@ -1,4 +1,5 @@
-import { del, handleUpload } from '@vercel/blob'
+import { del } from '@vercel/blob'
+import { handleUpload } from '@vercel/blob/client'
 import { sql } from '../lib/db.js'
 import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from '../lib/auth.js'
 import { buildState, pushNotif } from '../lib/state.js'
