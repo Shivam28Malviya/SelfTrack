@@ -300,7 +300,9 @@ export default async function handler(req, res) {
           if (!rows[0] || rows[0].role !== 'admin') throw new Error('Admin access required.')
           return { maximumSizeInBytes: 100 * 1024 * 1024, addRandomSuffix: true }
         },
-        onUploadCompleted: async () => {},
+        // No onUploadCompleted — omitting it prevents handleUpload from calling
+        // getCallbackUrl(req), which would build a broken URL from the rewritten
+        // /api/[...path] path. DB record is saved separately via POST /files.
       })
       return res.status(200).json(jsonResponse)
     }
