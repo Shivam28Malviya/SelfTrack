@@ -75,7 +75,9 @@ export default function Files() {
         toast(data.error, 'error')
       }
     } catch (err) {
-      toast(err?.message?.includes('Admin') ? 'Admin access required.' : 'Upload failed. Is the Blob store connected?', 'error', 5000)
+      console.error('[Files upload] failed:', err)
+      const msg = err?.message || String(err)
+      toast(`Upload failed: ${msg}`, 'error', 8000)
     }
     setUploading(false)
     if (inputRef.current) inputRef.current.value = ''
