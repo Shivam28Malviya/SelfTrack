@@ -264,18 +264,23 @@ export default function Dashboard() {
               <div className="min-w-0">
                 <p className="eyebrow">
                   Week {isCurrentWeek ? curWeekNum : shownWeekNum} Champion{weekChampions.length > 1 ? 's' : ''}
-                  {!isCurrentWeek && shownWeekNum !== null && <span className="text-neutral-400 font-medium"> (last declared)</span>}
                 </p>
                 {weekChampions.length > 0 ? (
-                  <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
-                    {weekChampions.map((c, i) => (
-                      <span key={c.id || i}>
-                        {i > 0 && <span className="text-neutral-400 font-medium"> & </span>}
-                        {c.emoji}{' '}
-                        <PlayerLink user={c} self={c.id === currentUser?.id} className="text-neutral-900" />
-                      </span>
-                    ))}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex -space-x-2">
+                      {weekChampions.map((c, i) => (
+                        <Avatar key={c.id || i} user={c} className="w-7 h-7 text-lg leading-none ring-2 ring-white shrink-0" />
+                      ))}
+                    </div>
+                    <p className="text-base font-bold text-neutral-900 truncate">
+                      {weekChampions.map((c, i) => (
+                        <span key={c.id || i}>
+                          {i > 0 && <span className="text-neutral-400 font-medium"> & </span>}
+                          <PlayerLink user={c} self={c.id === currentUser?.id} className="text-neutral-900" />
+                        </span>
+                      ))}
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-sm font-medium text-neutral-400 italic mt-0.5">Winner not declared yet ⏳</p>
                 )}
