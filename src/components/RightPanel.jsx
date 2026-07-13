@@ -90,7 +90,7 @@ export default function RightPanel({ inline = false }) {
                         </span>
                       ))}
                     </p>
-                    <p className="text-xs text-neutral-500 truncate">
+                    <p className="text-xs text-neutral-500 break-words">
                       <span className="font-semibold text-neutral-700">Topic:</span> {g.topic}
                     </p>
                   </div>

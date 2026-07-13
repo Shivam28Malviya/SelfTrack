@@ -183,13 +183,16 @@ export default function Dashboard() {
 
   // Week champions are the admin-declared weekly winners for the current week
   // (matched by the number in the week label), NOT the raw top scorer.
-  // A week can have several winners when players tie.
+  // A week can have several winners when players tie. If the current week
+  // hasn't been declared yet, fall back to the most recent declared week.
   const curWeekNum = weekNumberSinceAnchor()
-  const weekChampions = (meta.weeklyWinners || [])
-    .filter(w => {
-      const n = parseInt((String(w.week).match(/\d+/) || [])[0], 10)
-      return n === curWeekNum
-    })
+  const withWeekNum = (meta.weeklyWinners || [])
+    .map(w => ({ ...w, weekNum: parseInt((String(w.week).match(/\d+/) || [])[0], 10) }))
+    .filter(w => Number.isFinite(w.weekNum) && w.weekNum <= curWeekNum)
+  const shownWeekNum = withWeekNum.length > 0 ? Math.max(...withWeekNum.map(w => w.weekNum)) : null
+  const isCurrentWeek = shownWeekNum === curWeekNum
+  const weekChampions = withWeekNum
+    .filter(w => w.weekNum === shownWeekNum)
     .map(w => users.find(u => u.id === w.winnerId) || { username: w.winnerName, emoji: '🏅', id: w.winnerId })
 
   // Month champions — everyone tied at the top score shares the crown.
@@ -259,7 +262,10 @@ export default function Dashboard() {
             <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '80ms' }}>
               <span className="text-2xl animate-float">🏆</span>
               <div className="min-w-0">
-                <p className="eyebrow">Week {curWeekNum} Champion{weekChampions.length > 1 ? 's' : ''}</p>
+                <p className="eyebrow">
+                  Week {isCurrentWeek ? curWeekNum : shownWeekNum} Champion{weekChampions.length > 1 ? 's' : ''}
+                  {!isCurrentWeek && shownWeekNum !== null && <span className="text-neutral-400 font-medium"> (last declared)</span>}
+                </p>
                 {weekChampions.length > 0 ? (
                   <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
                     {weekChampions.map((c, i) => (
