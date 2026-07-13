@@ -167,26 +167,38 @@ export default function Dashboard() {
 
   const ranked = getSortedByPeriod(period)
   const maxPeriodScore = ranked[0]?.periodScore || 1
-  const top3 = ranked.slice(0, 3)
   const rest = ranked.slice(3)
-  const [first, second, third] = top3
+  const [first, second, third] = ranked.slice(0, 3)
+
+  // Competition ranking — equal scores share a place (1, 1, 3, ...).
+  const periodRanks = {}
+  ranked.forEach((u, i) => {
+    periodRanks[u.id] = i > 0 && ranked[i - 1].periodScore === u.periodScore
+      ? periodRanks[ranked[i - 1].id]
+      : i + 1
+  })
 
   const currentWeekRanks = getWeekRankMap(0)
   const lastWeekRanks = getWeekRankMap(1)
 
-  // Week champion is the admin-declared weekly winner for the current week
+  // Week champions are the admin-declared weekly winners for the current week
   // (matched by the number in the week label), NOT the raw top scorer.
+  // A week can have several winners when players tie.
   const curWeekNum = weekNumberSinceAnchor()
-  const weekWinnerEntry = (meta.weeklyWinners || []).find(w => {
-    const n = parseInt((String(w.week).match(/\d+/) || [])[0], 10)
-    return n === curWeekNum
-  })
-  const weekChampion = weekWinnerEntry
-    ? (users.find(u => u.id === weekWinnerEntry.winnerId) || { username: weekWinnerEntry.winnerName, emoji: '🏅', id: weekWinnerEntry.winnerId })
-    : null
-  const monthChampion = isLastWeekOfMonth() ? getSortedByPeriod('month')[0] : null
+  const weekChampions = (meta.weeklyWinners || [])
+    .filter(w => {
+      const n = parseInt((String(w.week).match(/\d+/) || [])[0], 10)
+      return n === curWeekNum
+    })
+    .map(w => users.find(u => u.id === w.winnerId) || { username: w.winnerName, emoji: '🏅', id: w.winnerId })
 
-  const currentUserRank = ranked.findIndex(u => u.id === currentUser?.id) + 1
+  // Month champions — everyone tied at the top score shares the crown.
+  const monthRanked = isLastWeekOfMonth() ? getSortedByPeriod('month') : []
+  const monthChampions = monthRanked.length > 0
+    ? monthRanked.filter(u => u.periodScore === monthRanked[0].periodScore)
+    : []
+
+  const currentUserRank = periodRanks[currentUser?.id] || 0
   const myProjection = currentUser && !isAdmin ? projectMonthScore(currentUser.history) : 0
 
   const filteredRest = useMemo(() => {
@@ -196,7 +208,7 @@ export default function Dashboard() {
   }, [rest, search])
 
   const exportCsv = () => {
-    const rows = ranked.map((u, i) => [i + 1, u.username, u.periodScore, u.stats.wins, weeksPlayedCount(u.history), levelFromXp(u.score).level])
+    const rows = ranked.map(u => [periodRanks[u.id], u.username, u.periodScore, u.stats.wins, weeksPlayedCount(u.history), levelFromXp(u.score).level])
     downloadCsv(`leaderboard-${period}.csv`, rows, ['Rank', 'Username', 'Points', 'Wins', 'WeeksPlayed', 'Level'])
     toast('Leaderboard exported as CSV.', 'success')
   }
@@ -247,11 +259,16 @@ export default function Dashboard() {
             <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '80ms' }}>
               <span className="text-2xl animate-float">🏆</span>
               <div className="min-w-0">
-                <p className="eyebrow">Week {curWeekNum} Champion</p>
-                {weekChampion ? (
+                <p className="eyebrow">Week {curWeekNum} Champion{weekChampions.length > 1 ? 's' : ''}</p>
+                {weekChampions.length > 0 ? (
                   <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
-                    {weekChampion.emoji}{' '}
-                    <PlayerLink user={weekChampion} self={weekChampion.id === currentUser?.id} className="text-neutral-900" />
+                    {weekChampions.map((c, i) => (
+                      <span key={c.id || i}>
+                        {i > 0 && <span className="text-neutral-400 font-medium"> & </span>}
+                        {c.emoji}{' '}
+                        <PlayerLink user={c} self={c.id === currentUser?.id} className="text-neutral-900" />
+                      </span>
+                    ))}
                   </p>
                 ) : (
                   <p className="text-sm font-medium text-neutral-400 italic mt-0.5">Winner not declared yet ⏳</p>
@@ -261,11 +278,16 @@ export default function Dashboard() {
             <div className="flex items-center gap-3 card px-4 py-3.5 animate-slide-up hover:-translate-y-0.5 transition-transform" style={{ animationDelay: '160ms' }}>
               <span className="text-2xl animate-float" style={{ animationDelay: '500ms' }}>👑</span>
               <div className="min-w-0">
-                <p className="eyebrow">{currentMonthName()}'s Champion</p>
-                {monthChampion ? (
+                <p className="eyebrow">{currentMonthName()}'s Champion{monthChampions.length > 1 ? 's' : ''}</p>
+                {monthChampions.length > 0 ? (
                   <p className="text-base font-bold text-neutral-900 truncate mt-0.5">
-                    {monthChampion.emoji}{' '}
-                    <PlayerLink user={monthChampion} self={monthChampion.id === currentUser?.id} className="text-neutral-900" />
+                    {monthChampions.map((c, i) => (
+                      <span key={c.id || i}>
+                        {i > 0 && <span className="text-neutral-400 font-medium"> & </span>}
+                        {c.emoji}{' '}
+                        <PlayerLink user={c} self={c.id === currentUser?.id} className="text-neutral-900" />
+                      </span>
+                    ))}
                   </p>
                 ) : (
                   <p className="text-sm font-medium text-neutral-400 italic mt-0.5">Announced at month end ⏳</p>
@@ -296,7 +318,7 @@ export default function Dashboard() {
             <h2 className="eyebrow mb-4">Top Performers</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <PodiumCard
-                user={first} rank={1} large canAward={isStaff}
+                user={first} rank={first ? periodRanks[first.id] : 1} large canAward={isStaff}
                 isMe={first?.id === currentUser?.id}
                 currentRanks={currentWeekRanks} lastRanks={lastWeekRanks}
                 delay={300}
@@ -304,7 +326,7 @@ export default function Dashboard() {
               <div className="flex gap-4">
                 <div className="flex-1">
                   <PodiumCard
-                    user={second} rank={2} canAward={isStaff}
+                    user={second} rank={second ? periodRanks[second.id] : 2} canAward={isStaff}
                     isMe={second?.id === currentUser?.id}
                     currentRanks={currentWeekRanks} lastRanks={lastWeekRanks}
                     delay={400}
@@ -312,7 +334,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <PodiumCard
-                    user={third} rank={3} canAward={isStaff}
+                    user={third} rank={third ? periodRanks[third.id] : 3} canAward={isStaff}
                     isMe={third?.id === currentUser?.id}
                     currentRanks={currentWeekRanks} lastRanks={lastWeekRanks}
                     delay={500}
@@ -345,7 +367,7 @@ export default function Dashboard() {
                   <p className="text-center text-neutral-400 text-sm py-6 animate-fade-in">No players match "{search}".</p>
                 )}
                 {filteredRest.map((user, idx) => {
-                  const rank = ranked.findIndex(u => u.id === user.id) + 1
+                  const rank = periodRanks[user.id]
                   const isMe = user.id === currentUser?.id
                   const weeks = weeksPlayedCount(user.history)
 

@@ -205,7 +205,7 @@ export default function Settings() {
   const [rewardsForm, setRewardsForm] = useState(meta.rewards)
   const [quoteForm, setQuoteForm] = useState(meta.quote)
   const [resultsForm, setResultsForm] = useState(meta.results?.text || '')
-  const [winnerForm, setWinnerForm] = useState({ week: '', topic: '', winnerId: '' })
+  const [winnerForm, setWinnerForm] = useState({ week: '', topic: '', winnerIds: [] })
 
   const [newAccount, setNewAccount] = useState({ username: '', email: '', password: '', role: 'user' })
   const [newCategory, setNewCategory] = useState('')
@@ -256,16 +256,17 @@ export default function Settings() {
     e.preventDefault()
     if (!winnerForm.week.trim()) return toast('Enter a week label.', 'error')
     if (!winnerForm.topic.trim()) return toast('Enter a test topic.', 'error')
-    if (!winnerForm.winnerId) return toast('Select a winner.', 'error')
-    const winner = users.find(u => u.id === winnerForm.winnerId)
+    if (winnerForm.winnerIds.length === 0) return toast('Select at least one winner.', 'error')
     addWeeklyWinner({
       week: winnerForm.week.trim(),
       topic: winnerForm.topic.trim(),
-      winnerId: winnerForm.winnerId,
-      winnerName: winner?.username || '',
+      winners: winnerForm.winnerIds.map(id => ({
+        winnerId: id,
+        winnerName: users.find(u => u.id === id)?.username || '',
+      })),
     })
-    setWinnerForm({ week: '', topic: '', winnerId: '' })
-    toast('Weekly winner added.', 'success')
+    setWinnerForm({ week: '', topic: '', winnerIds: [] })
+    toast(winnerForm.winnerIds.length > 1 ? 'Weekly winners added.' : 'Weekly winner added.', 'success')
   }
 
   const submitNewAccount = async (e) => {
@@ -564,29 +565,47 @@ export default function Settings() {
                     placeholder="Week label (e.g. Week 1)"
                     className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
-                  <select
-                    value={winnerForm.winnerId}
-                    onChange={e => setWinnerForm(p => ({ ...p, winnerId: e.target.value }))}
-                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
-                  >
-                    <option value="" className="bg-white text-slate-900">Select winner…</option>
-                    {nonAdminUsers.map(u => (
-                      <option key={u.id} value={u.id} className="bg-white text-slate-900">{u.username}</option>
-                    ))}
-                  </select>
                   <input
                     type="text"
                     maxLength={60}
                     value={winnerForm.topic}
                     onChange={e => setWinnerForm(p => ({ ...p, topic: e.target.value }))}
                     placeholder="Test topic"
-                    className="col-span-2 border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
+                    className="border border-neutral-300 bg-white rounded-lg px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
                   />
+                  {/* Ties are allowed — check everyone who shares the win */}
+                  <div className="col-span-2 border border-neutral-300 bg-white rounded-lg px-3 py-2 max-h-44 overflow-y-auto">
+                    <p className="text-xs font-semibold text-neutral-500 mb-1.5">
+                      Select winner(s){winnerForm.winnerIds.length > 0 ? ` — ${winnerForm.winnerIds.length} selected` : ''}
+                    </p>
+                    {nonAdminUsers.length === 0 ? (
+                      <p className="text-xs text-neutral-400">No eligible players.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {nonAdminUsers.map(u => (
+                          <label key={u.id} className="flex items-center gap-2 text-sm text-neutral-900 cursor-pointer hover:bg-neutral-50 rounded px-1 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={winnerForm.winnerIds.includes(u.id)}
+                              onChange={e => setWinnerForm(p => ({
+                                ...p,
+                                winnerIds: e.target.checked
+                                  ? [...p.winnerIds, u.id]
+                                  : p.winnerIds.filter(id => id !== u.id),
+                              }))}
+                              className="accent-neutral-900"
+                            />
+                            <span>{u.emoji} {u.username}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="submit"
                     className="col-span-2 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-2 rounded-lg text-sm shadow-md active:scale-[0.98]"
                   >
-                    Add Winner
+                    Add Winner{winnerForm.winnerIds.length > 1 ? 's' : ''}
                   </button>
                 </form>
 
@@ -599,7 +618,7 @@ export default function Settings() {
                           <span className="text-neutral-500"> — {w.winnerName} · {w.topic}</span>
                         </div>
                         <button
-                          onClick={() => { removeWeeklyWinner(w.id); toast(`Removed "${w.week}".`, 'info') }}
+                          onClick={() => { removeWeeklyWinner(w.id); toast(`Removed ${w.winnerName || 'winner'} from "${w.week}".`, 'info') }}
                           className="text-red-600 hover:underline text-xs"
                         >
                           Remove

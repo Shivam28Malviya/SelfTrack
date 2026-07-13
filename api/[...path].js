@@ -420,13 +420,22 @@ export default async function handler(req, res) {
 
     if (route === '/meta/weekly-winners' && method === 'POST') {
       const actor = await requireAdmin(req)
-      const { week, topic, winnerId, winnerName } = req.body || {}
-      if (winnerId) {
-        const { rows: wr } = await sql`select role from users where id = ${winnerId}`
-        if (wr[0]?.role === 'spectator') throw new HttpError(400, 'Spectators cannot be weekly winners.')
+      const { week, topic, winnerId, winnerName, winners } = req.body || {}
+      // Multiple winners can share a week (ties) — `winners` is an array of
+      // {winnerId, winnerName}; single winnerId/winnerName kept for compat.
+      const entries = Array.isArray(winners) && winners.length > 0
+        ? winners
+        : [{ winnerId, winnerName }]
+      for (const w of entries) {
+        if (w.winnerId) {
+          const { rows: wr } = await sql`select role from users where id = ${w.winnerId}`
+          if (wr[0]?.role === 'spectator') throw new HttpError(400, 'Spectators cannot be weekly winners.')
+        }
       }
-      await sql`insert into weekly_winners (week, topic, winner_id, winner_name) values (${week}, ${topic}, ${winnerId}, ${winnerName})`
-      if (winnerId) await sql`update users set wins = wins + 1 where id = ${winnerId}`
+      for (const w of entries) {
+        await sql`insert into weekly_winners (week, topic, winner_id, winner_name) values (${week}, ${topic}, ${w.winnerId || null}, ${w.winnerName || ''})`
+        if (w.winnerId) await sql`update users set wins = wins + 1 where id = ${w.winnerId}`
+      }
       const state = await buildState(actor.id)
       return res.status(200).json({ success: true, ...state })
     }

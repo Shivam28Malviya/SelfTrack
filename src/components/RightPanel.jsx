@@ -33,6 +33,20 @@ export default function RightPanel({ inline = false }) {
 
   const resultsText = results?.text || ''
 
+  // A week can have several winners (ties) — one row each in weeklyWinners.
+  // Group rows sharing a week + topic into a single card.
+  const winnerGroups = []
+  const groupIdx = {}
+  for (const w of weeklyWinners) {
+    const key = `${w.week}||${w.topic}`
+    if (groupIdx[key] === undefined) {
+      groupIdx[key] = winnerGroups.length
+      winnerGroups.push({ key, week: w.week, topic: w.topic, entries: [w] })
+    } else {
+      winnerGroups[groupIdx[key]].entries.push(w)
+    }
+  }
+
   // `inline` mode is used to surface the same content below the leaderboard
   // on small screens, where the fixed side panel is hidden.
   const Tag = inline ? 'div' : 'aside'
@@ -58,27 +72,37 @@ export default function RightPanel({ inline = false }) {
           <p className="text-neutral-400 text-sm">No winners recorded yet.</p>
         ) : (
           <div className="space-y-2">
-            {weeklyWinners.map((w, i) => {
-              const winnerUser = users.find(u => u.id === w.winnerId)
+            {winnerGroups.map((g, i) => {
+              const winners = g.entries.map(w => ({ entry: w, user: users.find(u => u.id === w.winnerId) }))
               return (
                 <div
-                  key={w.id}
+                  key={g.key}
                   style={{ animationDelay: `${i * 60 + 260}ms` }}
                   className="flex items-center justify-between gap-3 bg-neutral-50 rounded-2xl px-3 py-2.5 border border-neutral-200 animate-slide-up hover:bg-neutral-100 hover:scale-[1.02]"
                 >
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#a97e5d]">{w.week}</p>
+                    <p className="text-xs font-bold text-[#a97e5d]">{g.week}</p>
                     <p className="text-base font-extrabold text-neutral-900 truncate">
-                      <PlayerLink user={winnerUser} label={winnerUser?.username || w.winnerName} className="text-neutral-900" />
+                      {winners.map(({ entry, user }, j) => (
+                        <span key={entry.id}>
+                          {j > 0 && <span className="text-neutral-400 font-medium"> & </span>}
+                          <PlayerLink user={user} label={user?.username || entry.winnerName} className="text-neutral-900" />
+                        </span>
+                      ))}
                     </p>
                     <p className="text-xs text-neutral-500 truncate">
-                      <span className="font-semibold text-neutral-700">Topic:</span> {w.topic}
+                      <span className="font-semibold text-neutral-700">Topic:</span> {g.topic}
                     </p>
                   </div>
-                  <Avatar
-                    user={winnerUser || { emoji: '🏅' }}
-                    className="w-10 h-10 text-2xl leading-none shrink-0 ring-2 ring-[#e0cdb6]"
-                  />
+                  <div className="flex shrink-0 -space-x-3">
+                    {winners.slice(0, 3).map(({ entry, user }) => (
+                      <Avatar
+                        key={entry.id}
+                        user={user || { emoji: '🏅' }}
+                        className="w-10 h-10 text-2xl leading-none ring-2 ring-[#e0cdb6] bg-neutral-50 rounded-full"
+                      />
+                    ))}
+                  </div>
                 </div>
               )
             })}

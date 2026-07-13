@@ -281,8 +281,11 @@ export function AuthProvider({ children }) {
       .map(u => ({ id: u.id, score: pointsInWeekOffset(u.history, offset) }))
       .filter(u => u.score > 0)
       .sort((a, b) => b.score - a.score)
+    // Competition ranking — equal scores share a rank (1, 1, 3, ...).
     const map = {}
-    ranked.forEach((u, idx) => { map[u.id] = idx + 1 })
+    ranked.forEach((u, idx) => {
+      map[u.id] = idx > 0 && ranked[idx - 1].score === u.score ? map[ranked[idx - 1].id] : idx + 1
+    })
     return map
   }
 

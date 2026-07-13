@@ -33,7 +33,10 @@ export default function Profile() {
     (targetUser.role === 'spectator' && !isSelf && !canSeeSpectators)
   )
 
-  const rank = sortedUsers.findIndex(u => u.id === targetUser?.id) + 1
+  // Competition ranking — equal scores share a rank (1, 1, 3, ...).
+  const rank = sortedUsers.some(u => u.id === targetUser?.id)
+    ? 1 + sortedUsers.filter(u => u.score > targetUser.score).length
+    : 0
   const isAdminProfile = targetUser?.role === 'admin'
   const total = sortedUsers.length
   const weeks = weeksPlayedCount(targetUser?.history)
