@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import Compare from './pages/Compare'
 import HallOfFame from './pages/HallOfFame'
 import Files from './pages/Files'
+import Web from './pages/Web'
 import ProtectedRoute from './components/ProtectedRoute'
 import CommandPalette from './components/CommandPalette'
 import AnnouncementBanner from './components/AnnouncementBanner'
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/compare" element={<Authed><Compare /></Authed>} />
       <Route path="/hall-of-fame" element={<Authed><HallOfFame /></Authed>} />
       <Route path="/files" element={<Authed><Files /></Authed>} />
+      <Route path="/web" element={<Authed><Web /></Authed>} />
       <Route path="/settings" element={<Authed><Settings /></Authed>} />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

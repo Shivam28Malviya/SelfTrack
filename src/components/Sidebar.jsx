@@ -12,6 +12,7 @@ const NAV = [
   { to: '/compare', label: 'Compare', icon: '⚖️' },
   { to: '/hall-of-fame', label: 'Hall of Fame', icon: '🏛️' },
   { to: '/files', label: 'Files', icon: '🗂️', adminOnly: true },
+  { to: '/web', label: 'Web', icon: '🌐', adminOnly: true },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 

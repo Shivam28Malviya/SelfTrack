@@ -121,6 +121,14 @@ button, a, input, select, textarea {
   animation: pageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Web browser toolbar progress bar */
+@keyframes loadingBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Explicit shimmer keyframe */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
