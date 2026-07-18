@@ -1,7 +1,7 @@
 import { del } from '@vercel/blob'
 import { handleUpload } from '@vercel/blob/client'
 import { sql } from '../lib/db.js'
-import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from '../lib/auth.js'
+import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, getUserByToken, HttpError } from '../lib/auth.js'
 import { buildState, pushNotif } from '../lib/state.js'
 
 const RANDOM_EMOJIS = ['😎', '🎯', '🔥', '⭐', '🎮', '💡', '🧠', '🎪']
@@ -30,6 +30,39 @@ async function resetAllScores() {
   await sql`update users set score = 0, wins = 0`
 }
 
+// Injected into every proxied HTML page: keeps link clicks and GET-form
+// submits routing back through the proxy (instead of navigating the iframe
+// straight to the origin, which its X-Frame-Options would then block), and
+// reports the current address up to the parent app for the URL bar.
+const PROXY_CLIENT_JS = `
+(function(){
+  var P='/api/web-proxy?url=';
+  function px(u){return P+encodeURIComponent(u);}
+  function nav(u){try{parent.postMessage({__wpx:u},'*');}catch(e){}location.href=px(u);}
+  document.addEventListener('click',function(e){
+    var t=e.target;var a=t&&t.closest?t.closest('a[href]'):null;
+    if(!a)return;var h=a.href;if(!/^https?:/i.test(h))return;
+    e.preventDefault();nav(h);
+  },true);
+  document.addEventListener('submit',function(e){
+    var f=e.target;if(!f||f.tagName!=='FORM')return;
+    var m=(f.getAttribute('method')||'get').toLowerCase();if(m!=='get')return;
+    e.preventDefault();
+    var qs=new URLSearchParams(new FormData(f)).toString();
+    var act=(f.action||location.href).split('#')[0];
+    nav(act+(act.indexOf('?')>-1?'&':'?')+qs);
+  },true);
+})();
+`
+
+const proxyErrorPage = (title, detail) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+  `<style>body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0d10;color:#e5e7eb;font-family:system-ui,sans-serif}` +
+  `.b{text-align:center;max-width:440px;padding:24px}.t{font-size:18px;font-weight:700;margin-bottom:8px}` +
+  `.d{font-size:13px;color:#9ca3af;line-height:1.5;word-break:break-word}</style></head>` +
+  `<body><div class="b"><div style="font-size:40px;margin-bottom:12px">🚫</div>` +
+  `<div class="t">${title}</div><div class="d">${detail}</div></div></body></html>`
+
 export default async function handler(req, res) {
   const rawPath = req.query.path
   const segments = Array.isArray(rawPath) ? rawPath : (rawPath ? [rawPath] : [])
@@ -37,6 +70,70 @@ export default async function handler(req, res) {
   const method = req.method
 
   try {
+    // ---- admin web browser proxy ----
+    // Issues a path-scoped, http-only cookie mirroring the admin's session so
+    // the iframe (which can't send an Authorization header) authenticates.
+    if (route === '/web-proxy/auth' && method === 'POST') {
+      await requireAdmin(req)
+      const header = req.headers.authorization || ''
+      const token = header.startsWith('Bearer ') ? header.slice(7) : ''
+      res.setHeader('Set-Cookie', `wpx=${token}; Path=/api/web-proxy; HttpOnly; Secure; SameSite=Lax; Max-Age=1800`)
+      return res.status(200).json({ success: true })
+    }
+
+    if (route === '/web-proxy' && method === 'GET') {
+      const cookieTok = (req.cookies && req.cookies.wpx) || ''
+      const user = await getUserByToken(cookieTok)
+      if (!user || user.role !== 'admin') {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        return res.status(403).send(proxyErrorPage('Session expired', 'Reopen the Web tab to keep browsing.'))
+      }
+      let target = req.query.url
+      if (Array.isArray(target)) target = target[0]
+      if (!target || !/^https?:\/\//i.test(target)) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        return res.status(400).send(proxyErrorPage('Invalid address', 'The URL must start with http:// or https://.'))
+      }
+      let upstream
+      try {
+        upstream = await fetch(target, {
+          redirect: 'follow',
+          headers: {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'accept-language': 'en-US,en;q=0.9',
+          },
+        })
+      } catch (e) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        return res.status(502).send(proxyErrorPage('Could not reach site', String((e && e.message) || e)))
+      }
+      const finalUrl = upstream.url || target
+      const ctype = upstream.headers.get('content-type') || 'application/octet-stream'
+      res.setHeader('Cache-Control', 'private, no-store')
+
+      // Non-HTML top document (direct link to a PDF/image/etc): stream bytes through.
+      if (!/text\/html/i.test(ctype)) {
+        const buf = Buffer.from(await upstream.arrayBuffer())
+        res.setHeader('Content-Type', ctype)
+        return res.status(upstream.status).send(buf)
+      }
+
+      let html = await upstream.text()
+      // Only the top document is framing-restricted; its sub-resources are not.
+      // Drop any embedded CSP/base, then inject our <base> (sub-resources load
+      // straight from the origin) + the navigation-capture script.
+      html = html
+        .replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, '')
+        .replace(/<base\b[^>]*>/gi, '')
+      const inject = `<base href="${finalUrl.replace(/"/g, '&quot;')}"><script>${PROXY_CLIENT_JS}</script>`
+      html = /<head[^>]*>/i.test(html)
+        ? html.replace(/<head[^>]*>/i, (m) => m + inject)
+        : inject + html
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      return res.status(200).send(html)
+    }
+
     // ---- auth ----
     if (route === '/auth/signup' && method === 'POST') {
       const { username, email, password } = req.body || {}
