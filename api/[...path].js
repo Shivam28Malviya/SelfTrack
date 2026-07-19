@@ -299,7 +299,11 @@ export default async function handler(req, res) {
             where s.token = ${clientPayload || ''} and s.created_at > now() - interval '30 minutes'
           `
           if (!rows[0] || rows[0].role !== 'admin') throw new Error('Admin access required.')
-          return { maximumSizeInBytes: 1024 * 1024 * 1024, addRandomSuffix: true }
+          // addRandomSuffix is off: the client already scopes each upload under
+          // a UUID folder (uuid/original-name.ext), so the trailing path segment
+          // — which is what browsers show as the download filename for this
+          // cross-origin blob URL — stays exactly the original name.
+          return { maximumSizeInBytes: 1024 * 1024 * 1024, addRandomSuffix: false }
         },
         // No onUploadCompleted — omitting it prevents handleUpload from calling
         // getCallbackUrl(req), which would build a broken URL from the rewritten

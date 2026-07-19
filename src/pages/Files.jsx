@@ -45,6 +45,7 @@ export default function Files() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [batch, setBatch] = useState(null) // { index, total, name }
   const [progress, setProgress] = useState(null) // { percentage, loaded, total, eta }
   const [dragOver, setDragOver] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -62,50 +63,86 @@ export default function Files() {
 
   if (!initializing && !isAdmin) return <Navigate to="/" replace />
 
-  const handleFiles = async (fileList) => {
-    const file = fileList?.[0]
-    if (!file) return
-    if (file.size > MAX_FILE_BYTES) return toast('File too large. Max 1 GB.', 'error')
-
-    setUploading(true)
+  const uploadOne = async (file) => {
     setProgress({ percentage: 0, loaded: 0, total: file.size, eta: null })
     uploadStartRef.current = performance.now()
-    try {
-      // Browser -> Blob direct upload; session token rides along as the
-      // clientPayload for the server-side admin check.
-      const blob = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/files/upload',
-        clientPayload: getToken(),
-        // Large files as a single PUT are fragile — one network blip resets
-        // the whole transfer to 0%, which looks like an infinite retry loop.
-        // Multipart splits into 8MB parts uploaded with concurrency+retry
-        // per-part, so a blip only redoes one small part.
-        multipart: true,
-        onUploadProgress: ({ loaded, total, percentage }) => {
-          const elapsedSec = (performance.now() - uploadStartRef.current) / 1000
-          const bytesPerSec = elapsedSec > 0 ? loaded / elapsedSec : 0
-          const eta = bytesPerSec > 0 ? (total - loaded) / bytesPerSec : null
-          setProgress({ percentage, loaded, total, eta })
-        },
-      })
-      const data = await apiCall('POST', '/files', {
-        name: file.name, url: blob.url, size: file.size, contentType: file.type,
-      })
-      if (data.success) {
-        setFiles(data.files)
-        toast(`"${file.name}" uploaded.`, 'success')
-      } else {
-        toast(data.error, 'error')
-      }
-    } catch (err) {
-      console.error('[Files upload] failed:', err)
-      const msg = err?.message || String(err)
-      toast(`Upload failed: ${msg}`, 'error', 8000)
+    // UUID-scoped folder keeps the trailing path segment — the filename
+    // browsers show on cross-origin download — exactly the original name,
+    // while still guaranteeing a unique blob path (addRandomSuffix is off).
+    const pathname = `${crypto.randomUUID()}/${file.name}`
+    const blob = await upload(pathname, file, {
+      access: 'public',
+      handleUploadUrl: '/api/files/upload',
+      clientPayload: getToken(),
+      // Large files as a single PUT are fragile — one network blip resets
+      // the whole transfer to 0%, which looks like an infinite retry loop.
+      // Multipart splits into 8MB parts uploaded with concurrency+retry
+      // per-part, so a blip only redoes one small part.
+      multipart: true,
+      onUploadProgress: ({ loaded, total, percentage }) => {
+        const elapsedSec = (performance.now() - uploadStartRef.current) / 1000
+        const bytesPerSec = elapsedSec > 0 ? loaded / elapsedSec : 0
+        const eta = bytesPerSec > 0 ? (total - loaded) / bytesPerSec : null
+        setProgress({ percentage, loaded, total, eta })
+      },
+    })
+    const data = await apiCall('POST', '/files', {
+      name: file.name, url: blob.url, size: file.size, contentType: file.type,
+    })
+    if (!data.success) throw new Error(data.error || 'Upload failed.')
+    setFiles(data.files)
+  }
+
+  const handleFiles = async (fileList) => {
+    const incoming = Array.from(fileList || [])
+    if (incoming.length === 0) return
+
+    const oversized = incoming.filter(f => f.size > MAX_FILE_BYTES)
+    const valid = incoming.filter(f => f.size <= MAX_FILE_BYTES)
+    if (oversized.length > 0) {
+      toast(
+        oversized.length === 1
+          ? `"${oversized[0].name}" is over 1 GB — skipped.`
+          : `${oversized.length} files are over 1 GB — skipped.`,
+        'error',
+      )
     }
+    if (valid.length === 0) {
+      if (inputRef.current) inputRef.current.value = ''
+      return
+    }
+
+    setUploading(true)
+    const failed = []
+    let succeeded = 0
+    // Uploaded one at a time: each file's multipart transfer already runs
+    // several parts concurrently, so parallel files on top of that risks
+    // saturating slow connections and re-triggering the stall/retry issue
+    // multipart was just added to fix.
+    for (let i = 0; i < valid.length; i++) {
+      const file = valid[i]
+      setBatch({ index: i + 1, total: valid.length, name: file.name })
+      try {
+        await uploadOne(file)
+        succeeded++
+      } catch (err) {
+        console.error('[Files upload] failed:', file.name, err)
+        failed.push(file.name)
+      }
+    }
+
     setUploading(false)
+    setBatch(null)
     setProgress(null)
     if (inputRef.current) inputRef.current.value = ''
+
+    if (failed.length === 0) {
+      toast(succeeded === 1 ? `"${valid[0].name}" uploaded.` : `${succeeded} files uploaded.`, 'success')
+    } else if (succeeded > 0) {
+      toast(`${succeeded} uploaded, ${failed.length} failed: ${failed.join(', ')}`, 'error', 8000)
+    } else {
+      toast(`Upload failed: ${failed.join(', ')}`, 'error', 8000)
+    }
   }
 
   const handleDelete = async () => {
@@ -143,6 +180,7 @@ export default function Files() {
             <input
               ref={inputRef}
               type="file"
+              multiple
               className="hidden"
               onChange={e => handleFiles(e.target.files)}
               disabled={uploading}
@@ -150,6 +188,11 @@ export default function Files() {
             {uploading ? (
               <div className="flex flex-col items-center gap-3 cursor-default" onClick={e => e.stopPropagation()}>
                 <div className="w-full max-w-xs">
+                  {batch && batch.total > 1 && (
+                    <p className="text-xs font-semibold text-neutral-500 mb-1.5 truncate">
+                      File {batch.index} of {batch.total} — {batch.name}
+                    </p>
+                  )}
                   <div className="flex items-baseline justify-between mb-1.5">
                     <span className="text-lg font-bold text-neutral-900 tabular-nums">
                       {Math.round(progress?.percentage || 0)}%
@@ -172,8 +215,8 @@ export default function Files() {
             ) : (
               <>
                 <div className="text-4xl mb-2">📤</div>
-                <p className="font-semibold text-neutral-900">Drop a file here or click to browse</p>
-                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to 1 GB</p>
+                <p className="font-semibold text-neutral-900">Drop files here or click to browse</p>
+                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to 1 GB each · multiple files OK</p>
               </>
             )}
           </div>
