@@ -17,6 +17,15 @@ function formatBytes(n) {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
+function formatEta(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return null
+  if (seconds < 1) return 'almost done'
+  if (seconds < 60) return `${Math.ceil(seconds)}s left`
+  const m = Math.floor(seconds / 60)
+  const s = Math.round(seconds % 60)
+  return `${m}m ${s}s left`
+}
+
 function fileIcon(name) {
   const ext = (name.split('.').pop() || '').toLowerCase()
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '📦'
@@ -36,9 +45,11 @@ export default function Files() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(null) // { percentage, loaded, total, eta }
   const [dragOver, setDragOver] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const inputRef = useRef(null)
+  const uploadStartRef = useRef(0)
 
   useEffect(() => {
     if (!isAdmin) return
@@ -57,6 +68,8 @@ export default function Files() {
     if (file.size > MAX_FILE_BYTES) return toast('File too large. Max 1 GB.', 'error')
 
     setUploading(true)
+    setProgress({ percentage: 0, loaded: 0, total: file.size, eta: null })
+    uploadStartRef.current = performance.now()
     try {
       // Browser -> Blob direct upload; session token rides along as the
       // clientPayload for the server-side admin check.
@@ -64,6 +77,12 @@ export default function Files() {
         access: 'public',
         handleUploadUrl: '/api/files/upload',
         clientPayload: getToken(),
+        onUploadProgress: ({ loaded, total, percentage }) => {
+          const elapsedSec = (performance.now() - uploadStartRef.current) / 1000
+          const bytesPerSec = elapsedSec > 0 ? loaded / elapsedSec : 0
+          const eta = bytesPerSec > 0 ? (total - loaded) / bytesPerSec : null
+          setProgress({ percentage, loaded, total, eta })
+        },
       })
       const data = await apiCall('POST', '/files', {
         name: file.name, url: blob.url, size: file.size, contentType: file.type,
@@ -80,6 +99,7 @@ export default function Files() {
       toast(`Upload failed: ${msg}`, 'error', 8000)
     }
     setUploading(false)
+    setProgress(null)
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -123,9 +143,26 @@ export default function Files() {
               disabled={uploading}
             />
             {uploading ? (
-              <div className="flex flex-col items-center gap-3">
-                <span className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
-                <p className="text-sm font-medium text-neutral-600">Uploading…</p>
+              <div className="flex flex-col items-center gap-3 cursor-default" onClick={e => e.stopPropagation()}>
+                <div className="w-full max-w-xs">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <span className="text-lg font-bold text-neutral-900 tabular-nums">
+                      {Math.round(progress?.percentage || 0)}%
+                    </span>
+                    {progress?.eta != null && (
+                      <span className="text-xs font-medium text-neutral-500">{formatEta(progress.eta)}</span>
+                    )}
+                  </div>
+                  <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#a97e5d] rounded-full transition-[width] duration-200 ease-out"
+                      style={{ width: `${Math.min(100, Math.max(2, progress?.percentage || 0))}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-1.5">
+                    {formatBytes(progress?.loaded || 0)} of {formatBytes(progress?.total || 0)}
+                  </p>
+                </div>
               </div>
             ) : (
               <>
