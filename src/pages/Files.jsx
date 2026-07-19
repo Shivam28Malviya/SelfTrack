@@ -77,6 +77,11 @@ export default function Files() {
         access: 'public',
         handleUploadUrl: '/api/files/upload',
         clientPayload: getToken(),
+        // Large files as a single PUT are fragile — one network blip resets
+        // the whole transfer to 0%, which looks like an infinite retry loop.
+        // Multipart splits into 8MB parts uploaded with concurrency+retry
+        // per-part, so a blip only redoes one small part.
+        multipart: true,
         onUploadProgress: ({ loaded, total, percentage }) => {
           const elapsedSec = (performance.now() - uploadStartRef.current) / 1000
           const bytesPerSec = elapsedSec > 0 ? loaded / elapsedSec : 0
