@@ -299,7 +299,7 @@ export default async function handler(req, res) {
             where s.token = ${clientPayload || ''} and s.created_at > now() - interval '30 minutes'
           `
           if (!rows[0] || rows[0].role !== 'admin') throw new Error('Admin access required.')
-          return { maximumSizeInBytes: 100 * 1024 * 1024, addRandomSuffix: true }
+          return { maximumSizeInBytes: 1024 * 1024 * 1024, addRandomSuffix: true }
         },
         // No onUploadCompleted — omitting it prevents handleUpload from calling
         // getCallbackUrl(req), which would build a broken URL from the rewritten

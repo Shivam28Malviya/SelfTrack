@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useToast } from '../components/Toast'
 
-const MAX_FILE_BYTES = 100 * 1024 * 1024 // matches server token limit
+const MAX_FILE_BYTES = 1024 * 1024 * 1024 // matches server token limit
 
 function formatBytes(n) {
   if (!n) return '—'
@@ -54,7 +54,7 @@ export default function Files() {
   const handleFiles = async (fileList) => {
     const file = fileList?.[0]
     if (!file) return
-    if (file.size > MAX_FILE_BYTES) return toast('File too large. Max 100 MB.', 'error')
+    if (file.size > MAX_FILE_BYTES) return toast('File too large. Max 1 GB.', 'error')
 
     setUploading(true)
     try {
@@ -103,7 +103,7 @@ export default function Files() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-10 animate-slide-up">
           <span className="eyebrow">/Admin</span>
           <h1 className="display text-5xl text-neutral-900 mt-1 mb-1">FILES</h1>
-          <p className="text-neutral-500 mb-6">Upload and share files — zip, pdf, ppt, and more. Max 100 MB each.</p>
+          <p className="text-neutral-500 mb-6">Upload and share files — zip, pdf, ppt, and more. Max 1 GB each.</p>
 
           {/* Upload area */}
           <div
@@ -131,7 +131,7 @@ export default function Files() {
               <>
                 <div className="text-4xl mb-2">📤</div>
                 <p className="font-semibold text-neutral-900">Drop a file here or click to browse</p>
-                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to 100 MB</p>
+                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to 1 GB</p>
               </>
             )}
           </div>
