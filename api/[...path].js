@@ -303,7 +303,14 @@ export default async function handler(req, res) {
           // a UUID folder (uuid/original-name.ext), so the trailing path segment
           // — which is what browsers show as the download filename for this
           // cross-origin blob URL — stays exactly the original name.
-          return { maximumSizeInBytes: 1024 * 1024 * 1024, addRandomSuffix: false }
+          // validUntil extended well past the 1hr default: a 1GB multipart
+          // transfer on a slow connection could otherwise outlast the token
+          // and have parts start failing auth partway through.
+          return {
+            maximumSizeInBytes: 1024 * 1024 * 1024,
+            addRandomSuffix: false,
+            validUntil: Date.now() + 6 * 60 * 60 * 1000,
+          }
         },
         // No onUploadCompleted — omitting it prevents handleUpload from calling
         // getCallbackUrl(req), which would build a broken URL from the rewritten

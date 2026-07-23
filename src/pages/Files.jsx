@@ -127,7 +127,8 @@ export default function Files() {
         succeeded++
       } catch (err) {
         console.error('[Files upload] failed:', file.name, err)
-        failed.push(file.name)
+        const msg = err?.message || String(err)
+        failed.push(`${file.name} (${msg})`)
       }
     }
 
@@ -139,9 +140,9 @@ export default function Files() {
     if (failed.length === 0) {
       toast(succeeded === 1 ? `"${valid[0].name}" uploaded.` : `${succeeded} files uploaded.`, 'success')
     } else if (succeeded > 0) {
-      toast(`${succeeded} uploaded, ${failed.length} failed: ${failed.join(', ')}`, 'error', 8000)
+      toast(`${succeeded} uploaded. Failed: ${failed.join('; ')}`, 'error', 12000)
     } else {
-      toast(`Upload failed: ${failed.join(', ')}`, 'error', 8000)
+      toast(`Upload failed: ${failed.join('; ')}`, 'error', 12000)
     }
   }
 
