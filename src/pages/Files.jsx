@@ -8,6 +8,11 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { useToast } from '../components/Toast'
 
 const MAX_FILE_BYTES = 1024 * 1024 * 1024 // matches server token limit
+// Below this, a single PUT (proven reliable in this app) is simpler and
+// faster than the multipart create/upload-part/complete round-trips —
+// multipart is only worth its overhead once a network blip mid-transfer
+// becomes a real risk.
+const MULTIPART_THRESHOLD_BYTES = 50 * 1024 * 1024
 
 function formatBytes(n) {
   if (!n) return '—'
@@ -77,8 +82,11 @@ export default function Files() {
       // Large files as a single PUT are fragile — one network blip resets
       // the whole transfer to 0%, which looks like an infinite retry loop.
       // Multipart splits into 8MB parts uploaded with concurrency+retry
-      // per-part, so a blip only redoes one small part.
-      multipart: true,
+      // per-part, so a blip only redoes one small part. Only worth it above
+      // the threshold — forcing it on small files routes them through a
+      // different Blob API path (create/upload-part/complete) than a plain
+      // PUT for no benefit.
+      multipart: file.size > MULTIPART_THRESHOLD_BYTES,
       onUploadProgress: ({ loaded, total, percentage }) => {
         const elapsedSec = (performance.now() - uploadStartRef.current) / 1000
         const bytesPerSec = elapsedSec > 0 ? loaded / elapsedSec : 0
