@@ -1,4 +1,4 @@
-import { del } from '@vercel/blob'
+import { del, put } from '@vercel/blob'
 import { handleUpload } from '@vercel/blob/client'
 import { sql } from '../lib/db.js'
 import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from '../lib/auth.js'
@@ -285,6 +285,30 @@ export default async function handler(req, res) {
     }
 
     // ---- files (admin) ----
+    // Temporary diagnostic: server-side put/del using BLOB_READ_WRITE_TOKEN
+    // directly (bypasses the client token-exchange entirely) to isolate
+    // whether the Blob store connection itself is healthy, independent of
+    // anything happening in the user's browser/network.
+    if (route === '/files/blob-check' && method === 'GET') {
+      await requireAdmin(req)
+      const start = Date.now()
+      try {
+        const blob = await put(`__diagnostics__/${Date.now()}.txt`, 'selftrack blob connectivity check', {
+          access: 'public',
+          addRandomSuffix: false,
+        })
+        await del(blob.url)
+        return res.status(200).json({ success: true, tookMs: Date.now() - start, url: blob.url })
+      } catch (err) {
+        return res.status(200).json({
+          success: false,
+          tookMs: Date.now() - start,
+          error: err?.message || String(err),
+          name: err?.constructor?.name,
+        })
+      }
+    }
+
     // Token exchange for direct browser -> Blob uploads (bypasses the 4.5MB
     // serverless body limit). The client sends its session token as
     // clientPayload; we validate it against an unexpired admin session here
