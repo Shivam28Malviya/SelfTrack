@@ -121,6 +121,14 @@ button, a, input, select, textarea {
   animation: pageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Indeterminate upload progress bar (Supabase's client doesn't expose
+   byte-level upload progress, so this is a sliding highlight, not a
+   percentage fill). */
+@keyframes indeterminateBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
 /* Explicit shimmer keyframe */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

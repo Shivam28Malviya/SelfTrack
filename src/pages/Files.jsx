@@ -1,18 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { Navigate } from 'react-router-dom'
-import { upload } from '@vercel/blob/client'
 import { useAuth } from '../context/AuthContext'
-import { apiCall, getToken } from '../lib/api'
+import { apiCall } from '../lib/api'
+import { getSupabase, FILES_BUCKET } from '../lib/supabaseClient'
 import Sidebar from '../components/Sidebar'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useToast } from '../components/Toast'
 
-const MAX_FILE_BYTES = 1024 * 1024 * 1024 // matches server token limit
-// Below this, a single PUT (proven reliable in this app) is simpler and
-// faster than the multipart create/upload-part/complete round-trips —
-// multipart is only worth its overhead once a network blip mid-transfer
-// becomes a real risk.
-const MULTIPART_THRESHOLD_BYTES = 50 * 1024 * 1024
+// Supabase's free-tier default per-file cap. Raise this if the project is
+// on a paid plan with a higher configured limit.
+const MAX_FILE_BYTES = 50 * 1024 * 1024
 
 function formatBytes(n) {
   if (!n) return '—'
@@ -22,13 +19,11 @@ function formatBytes(n) {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-function formatEta(seconds) {
-  if (!Number.isFinite(seconds) || seconds < 0) return null
-  if (seconds < 1) return 'almost done'
-  if (seconds < 60) return `${Math.ceil(seconds)}s left`
+function formatElapsed(seconds) {
+  if (seconds < 60) return `${Math.floor(seconds)}s`
   const m = Math.floor(seconds / 60)
-  const s = Math.round(seconds % 60)
-  return `${m}m ${s}s left`
+  const s = Math.floor(seconds % 60)
+  return `${m}m ${s}s`
 }
 
 function fileIcon(name) {
@@ -51,11 +46,11 @@ export default function Files() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [batch, setBatch] = useState(null) // { index, total, name }
-  const [progress, setProgress] = useState(null) // { percentage, loaded, total, eta }
+  const [elapsedSec, setElapsedSec] = useState(0)
   const [dragOver, setDragOver] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const inputRef = useRef(null)
-  const uploadStartRef = useRef(0)
+  const elapsedTimerRef = useRef(null)
 
   useEffect(() => {
     if (!isAdmin) return
@@ -69,36 +64,35 @@ export default function Files() {
   if (!initializing && !isAdmin) return <Navigate to="/" replace />
 
   const uploadOne = async (file) => {
-    setProgress({ percentage: 0, loaded: 0, total: file.size, eta: null })
-    uploadStartRef.current = performance.now()
-    // UUID-scoped folder keeps the trailing path segment — the filename
-    // browsers show on cross-origin download — exactly the original name,
-    // while still guaranteeing a unique blob path (addRandomSuffix is off).
-    const pathname = `${crypto.randomUUID()}/${file.name}`
-    const blob = await upload(pathname, file, {
-      access: 'public',
-      handleUploadUrl: '/api/files/upload',
-      clientPayload: getToken(),
-      // Large files as a single PUT are fragile — one network blip resets
-      // the whole transfer to 0%, which looks like an infinite retry loop.
-      // Multipart splits into 8MB parts uploaded with concurrency+retry
-      // per-part, so a blip only redoes one small part. Only worth it above
-      // the threshold — forcing it on small files routes them through a
-      // different Blob API path (create/upload-part/complete) than a plain
-      // PUT for no benefit.
-      multipart: file.size > MULTIPART_THRESHOLD_BYTES,
-      onUploadProgress: ({ loaded, total, percentage }) => {
-        const elapsedSec = (performance.now() - uploadStartRef.current) / 1000
-        const bytesPerSec = elapsedSec > 0 ? loaded / elapsedSec : 0
-        const eta = bytesPerSec > 0 ? (total - loaded) / bytesPerSec : null
-        setProgress({ percentage, loaded, total, eta })
-      },
-    })
-    const data = await apiCall('POST', '/files', {
-      name: file.name, url: blob.url, size: file.size, contentType: file.type,
-    })
-    if (!data.success) throw new Error(data.error || 'Upload failed.')
-    setFiles(data.files)
+    setElapsedSec(0)
+    elapsedTimerRef.current = setInterval(() => setElapsedSec(s => s + 1), 1000)
+    try {
+      // UUID-scoped folder keeps the trailing path segment — the filename
+      // used for both storage and download — exactly the original name,
+      // while still guaranteeing uniqueness across uploads.
+      const path = `${crypto.randomUUID()}/${file.name}`
+
+      // Admin-gated signed upload URL, minted server-side; the file bytes
+      // then go straight from this browser to Supabase Storage using it —
+      // never through our serverless function, so no 4.5MB body limit.
+      const urlRes = await apiCall('POST', '/files/upload-url', { path })
+      if (!urlRes.success) throw new Error(urlRes.error || 'Could not start upload.')
+
+      const supabase = getSupabase()
+      const { error: uploadError } = await supabase.storage
+        .from(FILES_BUCKET)
+        .uploadToSignedUrl(urlRes.path, urlRes.token, file, { contentType: file.type })
+      if (uploadError) throw new Error(uploadError.message || 'Upload failed.')
+
+      const { data: pub } = supabase.storage.from(FILES_BUCKET).getPublicUrl(urlRes.path)
+      const data = await apiCall('POST', '/files', {
+        name: file.name, url: pub.publicUrl, size: file.size, contentType: file.type,
+      })
+      if (!data.success) throw new Error(data.error || 'Upload failed.')
+      setFiles(data.files)
+    } finally {
+      clearInterval(elapsedTimerRef.current)
+    }
   }
 
   const handleFiles = async (fileList) => {
@@ -110,8 +104,8 @@ export default function Files() {
     if (oversized.length > 0) {
       toast(
         oversized.length === 1
-          ? `"${oversized[0].name}" is over 1 GB — skipped.`
-          : `${oversized.length} files are over 1 GB — skipped.`,
+          ? `"${oversized[0].name}" is over ${formatBytes(MAX_FILE_BYTES)} — skipped.`
+          : `${oversized.length} files are over ${formatBytes(MAX_FILE_BYTES)} — skipped.`,
         'error',
       )
     }
@@ -123,10 +117,8 @@ export default function Files() {
     setUploading(true)
     const failed = []
     let succeeded = 0
-    // Uploaded one at a time: each file's multipart transfer already runs
-    // several parts concurrently, so parallel files on top of that risks
-    // saturating slow connections and re-triggering the stall/retry issue
-    // multipart was just added to fix.
+    // Uploaded one at a time — simplest way to keep the "File N of M" status
+    // meaningful and avoid stacking several transfers on one connection.
     for (let i = 0; i < valid.length; i++) {
       const file = valid[i]
       setBatch({ index: i + 1, total: valid.length, name: file.name })
@@ -142,7 +134,6 @@ export default function Files() {
 
     setUploading(false)
     setBatch(null)
-    setProgress(null)
     if (inputRef.current) inputRef.current.value = ''
 
     if (failed.length === 0) {
@@ -174,7 +165,7 @@ export default function Files() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-10 animate-slide-up">
           <span className="eyebrow">/Admin</span>
           <h1 className="display text-5xl text-neutral-900 mt-1 mb-1">FILES</h1>
-          <p className="text-neutral-500 mb-6">Upload and share files — zip, pdf, ppt, and more. Max 1 GB each.</p>
+          <p className="text-neutral-500 mb-6">Upload and share files — zip, pdf, ppt, and more. Max {formatBytes(MAX_FILE_BYTES)} each.</p>
 
           {/* Upload area */}
           <div
@@ -203,29 +194,20 @@ export default function Files() {
                     </p>
                   )}
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="text-lg font-bold text-neutral-900 tabular-nums">
-                      {Math.round(progress?.percentage || 0)}%
-                    </span>
-                    {progress?.eta != null && (
-                      <span className="text-xs font-medium text-neutral-500">{formatEta(progress.eta)}</span>
-                    )}
+                    <span className="text-sm font-bold text-neutral-900">Uploading…</span>
+                    <span className="text-xs font-medium text-neutral-500">{formatElapsed(elapsedSec)} elapsed</span>
                   </div>
-                  <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#a97e5d] rounded-full transition-[width] duration-200 ease-out"
-                      style={{ width: `${Math.min(100, Math.max(2, progress?.percentage || 0))}%` }}
-                    />
+                  {/* Indeterminate — Supabase's client doesn't expose byte-level progress */}
+                  <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden relative">
+                    <div className="absolute inset-y-0 left-0 w-1/3 bg-[#a97e5d] rounded-full animate-[indeterminateBar_1.2s_ease-in-out_infinite]" />
                   </div>
-                  <p className="text-xs text-neutral-400 mt-1.5">
-                    {formatBytes(progress?.loaded || 0)} of {formatBytes(progress?.total || 0)}
-                  </p>
                 </div>
               </div>
             ) : (
               <>
                 <div className="text-4xl mb-2">📤</div>
                 <p className="font-semibold text-neutral-900">Drop files here or click to browse</p>
-                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to 1 GB each · multiple files OK</p>
+                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to {formatBytes(MAX_FILE_BYTES)} each · multiple files OK</p>
               </>
             )}
           </div>
@@ -254,8 +236,7 @@ export default function Files() {
                     </p>
                   </div>
                   <a
-                    href={`${f.url}?download=1`}
-                    download={f.name}
+                    href={`${f.url}?download=${encodeURIComponent(f.name)}`}
                     className="shrink-0 text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95"
                   >
                     ⬇ Download

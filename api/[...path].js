@@ -1,5 +1,4 @@
-import { del, put } from '@vercel/blob'
-import { handleUpload } from '@vercel/blob/client'
+import { getSupabaseAdmin, FILES_BUCKET } from '../lib/supabase.js'
 import { sql } from '../lib/db.js'
 import { hashPassword, verifyPassword, createSession, destroySession, requireAuth, requireStaff, requireAdmin, HttpError } from '../lib/auth.js'
 import { buildState, pushNotif } from '../lib/state.js'
@@ -285,62 +284,17 @@ export default async function handler(req, res) {
     }
 
     // ---- files (admin) ----
-    // Temporary diagnostic: server-side put/del using BLOB_READ_WRITE_TOKEN
-    // directly (bypasses the client token-exchange entirely) to isolate
-    // whether the Blob store connection itself is healthy, independent of
-    // anything happening in the user's browser/network.
-    if (route === '/files/blob-check' && method === 'GET') {
+    // Client picks a UUID-scoped path client-side and asks for a signed
+    // upload URL here (admin-gated). The browser then PUTs the file bytes
+    // directly to Supabase Storage using that URL — never through this
+    // serverless function, so the 4.5MB body limit doesn't apply.
+    if (route === '/files/upload-url' && method === 'POST') {
       await requireAdmin(req)
-      const start = Date.now()
-      try {
-        const blob = await put(`__diagnostics__/${Date.now()}.txt`, 'selftrack blob connectivity check', {
-          access: 'public',
-          addRandomSuffix: false,
-        })
-        await del(blob.url)
-        return res.status(200).json({ success: true, tookMs: Date.now() - start, url: blob.url })
-      } catch (err) {
-        return res.status(200).json({
-          success: false,
-          tookMs: Date.now() - start,
-          error: err?.message || String(err),
-          name: err?.constructor?.name,
-        })
-      }
-    }
-
-    // Token exchange for direct browser -> Blob uploads (bypasses the 4.5MB
-    // serverless body limit). The client sends its session token as
-    // clientPayload; we validate it against an unexpired admin session here
-    // since the blob client doesn't forward our Authorization header.
-    if (route === '/files/upload' && method === 'POST') {
-      const jsonResponse = await handleUpload({
-        body: req.body,
-        request: req,
-        onBeforeGenerateToken: async (pathname, clientPayload) => {
-          const { rows } = await sql`
-            select u.role from sessions s join users u on u.id = s.user_id
-            where s.token = ${clientPayload || ''} and s.created_at > now() - interval '30 minutes'
-          `
-          if (!rows[0] || rows[0].role !== 'admin') throw new Error('Admin access required.')
-          // addRandomSuffix is off: the client already scopes each upload under
-          // a UUID folder (uuid/original-name.ext), so the trailing path segment
-          // — which is what browsers show as the download filename for this
-          // cross-origin blob URL — stays exactly the original name.
-          // validUntil extended well past the 1hr default: a 1GB multipart
-          // transfer on a slow connection could otherwise outlast the token
-          // and have parts start failing auth partway through.
-          return {
-            maximumSizeInBytes: 1024 * 1024 * 1024,
-            addRandomSuffix: false,
-            validUntil: Date.now() + 6 * 60 * 60 * 1000,
-          }
-        },
-        // No onUploadCompleted — omitting it prevents handleUpload from calling
-        // getCallbackUrl(req), which would build a broken URL from the rewritten
-        // /api/[...path] path. DB record is saved separately via POST /files.
-      })
-      return res.status(200).json(jsonResponse)
+      const { path } = req.body || {}
+      if (!path || typeof path !== 'string') throw new HttpError(400, 'Missing path.')
+      const { data, error } = await getSupabaseAdmin().storage.from(FILES_BUCKET).createSignedUploadUrl(path)
+      if (error) throw new HttpError(502, error.message || 'Could not create upload URL.')
+      return res.status(200).json({ success: true, signedUrl: data.signedUrl, token: data.token, path: data.path })
     }
 
     if (route === '/files' && method === 'GET') {
@@ -352,7 +306,9 @@ export default async function handler(req, res) {
       const actor = await requireAdmin(req)
       const { name, url, size, contentType } = req.body || {}
       if (!name || !url) throw new HttpError(400, 'Missing file info.')
-      if (!/^https:\/\/[^/]*blob\.vercel-storage\.com\//.test(url)) throw new HttpError(400, 'Invalid file URL.')
+      if (!url.startsWith(`${process.env.SUPABASE_URL}/storage/v1/object/public/${FILES_BUCKET}/`)) {
+        throw new HttpError(400, 'Invalid file URL.')
+      }
       await sql`
         insert into files (name, url, size, content_type, uploaded_by)
         values (${name}, ${url}, ${parseInt(size, 10) || 0}, ${contentType || ''}, ${actor.username})
@@ -365,7 +321,11 @@ export default async function handler(req, res) {
       await requireAdmin(req)
       const { rows } = await sql`select url from files where id = ${fileMatch[1]}`
       if (rows[0]) {
-        try { await del(rows[0].url) } catch { /* blob already gone — still drop the row */ }
+        const prefix = `${process.env.SUPABASE_URL}/storage/v1/object/public/${FILES_BUCKET}/`
+        if (rows[0].url.startsWith(prefix)) {
+          const objectPath = decodeURIComponent(rows[0].url.slice(prefix.length))
+          try { await getSupabaseAdmin().storage.from(FILES_BUCKET).remove([objectPath]) } catch { /* object already gone — still drop the row */ }
+        }
       }
       await sql`delete from files where id = ${fileMatch[1]}`
       return res.status(200).json({ success: true, files: await listFiles() })
