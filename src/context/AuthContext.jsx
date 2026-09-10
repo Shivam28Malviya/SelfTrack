@@ -7,6 +7,7 @@ const DEFAULT_META = {
   rewards: { first: { text: '', image: '' }, second: { text: '', image: '' } },
   quote: { text: '', image: '' },
   results: { text: '' },
+  clipboard: { text: '' },
   weeklyWinners: [],
   categories: ['General'],
   announcement: { text: '', until: 0 },
@@ -221,6 +222,11 @@ export function AuthProvider({ children }) {
     if (data.success) applyState(data)
     return data
   }
+  const updateClipboard = async (clipboard) => {
+    const data = await apiCall('POST', '/meta/clipboard', clipboard)
+    if (data.success) applyState(data)
+    return data
+  }
   const addWeeklyWinner = async (entry) => {
     const data = await apiCall('POST', '/meta/weekly-winners', entry)
     if (data.success) applyState(data)
@@ -306,7 +312,7 @@ export function AuthProvider({ children }) {
         adminSetAvatar, requestAvatarChange, approveAvatar, rejectAvatar,
         sendKudos,
         getSortedByPeriod, getWeekRankMap,
-        updateRewards, updateQuote, updateResults, addWeeklyWinner, removeWeeklyWinner,
+        updateRewards, updateQuote, updateResults, updateClipboard, addWeeklyWinner, removeWeeklyWinner,
         addCategory, removeCategory, postAnnouncement, clearAnnouncement,
         markNotifRead, markAllNotifsRead,
       }}

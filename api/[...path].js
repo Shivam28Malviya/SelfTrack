@@ -370,6 +370,16 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, ...state })
     }
 
+    if (route === '/meta/clipboard' && method === 'POST') {
+      const actor = await requireAdmin(req)
+      // Self-heals the column on first use — this DB has no migration runner,
+      // so schema.sql changes need a manual ALTER unless a route does it here.
+      await sql`alter table meta add column if not exists clipboard jsonb not null default '{"text":""}'`
+      await sql`update meta set clipboard = ${JSON.stringify(req.body || {})}::jsonb where id = 1`
+      const state = await buildState(actor.id)
+      return res.status(200).json({ success: true, ...state })
+    }
+
     if (route === '/meta/categories' && method === 'POST') {
       const actor = await requireAdmin(req)
       const { name } = req.body || {}

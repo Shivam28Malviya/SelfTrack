@@ -40,7 +40,7 @@ function fileIcon(name) {
 }
 
 export default function Files() {
-  const { isAdmin, initializing } = useAuth()
+  const { isAdmin, initializing, meta, updateClipboard } = useAuth()
   const { toast } = useToast()
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +49,8 @@ export default function Files() {
   const [elapsedSec, setElapsedSec] = useState(0)
   const [dragOver, setDragOver] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [clipboardText, setClipboardText] = useState(meta.clipboard.text)
+  const [savingClipboard, setSavingClipboard] = useState(false)
   const inputRef = useRef(null)
   const elapsedTimerRef = useRef(null)
 
@@ -60,6 +62,26 @@ export default function Files() {
       setLoading(false)
     })
   }, [isAdmin])
+
+  const clipboardDirty = clipboardText !== meta.clipboard.text
+  const clipboardWords = clipboardText.trim() ? clipboardText.trim().split(/\s+/).length : 0
+
+  const handleSaveClipboard = async () => {
+    setSavingClipboard(true)
+    const data = await updateClipboard({ text: clipboardText })
+    setSavingClipboard(false)
+    if (data.success) toast('Clipboard saved.', 'success')
+    else toast(data.error || 'Could not save clipboard.', 'error')
+  }
+
+  const handleClearClipboard = async () => {
+    setClipboardText('')
+    setSavingClipboard(true)
+    const data = await updateClipboard({ text: '' })
+    setSavingClipboard(false)
+    if (data.success) toast('Clipboard cleared.', 'success')
+    else toast(data.error || 'Could not clear clipboard.', 'error')
+  }
 
   if (!initializing && !isAdmin) return <Navigate to="/" replace />
 
@@ -210,6 +232,43 @@ export default function Files() {
                 <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to {formatBytes(MAX_FILE_BYTES)} each · multiple files OK</p>
               </>
             )}
+          </div>
+
+          {/* Clipboard — paste/save large text, no size limit like a file upload has */}
+          <div className="card p-5 mb-6">
+            <div className="flex items-baseline justify-between mb-2 gap-2">
+              <h2 className="font-bold text-neutral-900">Clipboard</h2>
+              <span className="text-xs text-neutral-400 shrink-0">
+                {clipboardWords.toLocaleString()} words · {formatBytes(new Blob([clipboardText]).size)}
+              </span>
+            </div>
+            <textarea
+              value={clipboardText}
+              onChange={e => setClipboardText(e.target.value)}
+              placeholder="Paste or type text here — notes, logs, drafts, anything. Saved on the server, no length limit."
+              className="w-full h-64 max-h-[60vh] overflow-y-auto resize-y rounded-xl border border-neutral-200 p-3 text-sm font-mono text-neutral-800 focus:outline-none focus:border-[#a97e5d]"
+            />
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-xs text-neutral-400">
+                {clipboardDirty ? 'Unsaved changes' : 'Saved'}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClearClipboard}
+                  disabled={savingClipboard || (!clipboardText && !meta.clipboard.text)}
+                  className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleSaveClipboard}
+                  disabled={savingClipboard || !clipboardDirty}
+                  className="text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {savingClipboard ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* File list */}
