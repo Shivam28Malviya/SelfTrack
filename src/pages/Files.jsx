@@ -184,132 +184,136 @@ export default function Files() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-10 animate-slide-up">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-8 lg:pt-10 animate-slide-up">
           <span className="eyebrow">/Admin</span>
           <h1 className="display text-5xl text-neutral-900 mt-1 mb-1">FILES</h1>
           <p className="text-neutral-500 mb-6">Upload and share files — zip, pdf, ppt, and more. Max {formatBytes(MAX_FILE_BYTES)} each.</p>
 
-          {/* Upload area */}
-          <div
-            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
-            onClick={() => !uploading && inputRef.current?.click()}
-            className={`card p-8 mb-6 text-center cursor-pointer transition-colors ${
-              dragOver ? 'border-[#a97e5d] bg-[#f3ece3]' : 'hover:border-neutral-400'
-            } ${uploading ? 'opacity-60 cursor-wait' : ''}`}
-          >
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={e => handleFiles(e.target.files)}
-              disabled={uploading}
-            />
-            {uploading ? (
-              <div className="flex flex-col items-center gap-3 cursor-default" onClick={e => e.stopPropagation()}>
-                <div className="w-full max-w-xs">
-                  {batch && batch.total > 1 && (
-                    <p className="text-xs font-semibold text-neutral-500 mb-1.5 truncate">
-                      File {batch.index} of {batch.total} — {batch.name}
-                    </p>
-                  )}
-                  <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="text-sm font-bold text-neutral-900">Uploading…</span>
-                    <span className="text-xs font-medium text-neutral-500">{formatElapsed(elapsedSec)} elapsed</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Left: upload + file list */}
+            <div>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+                onClick={() => !uploading && inputRef.current?.click()}
+                className={`card p-8 mb-6 text-center cursor-pointer transition-colors ${
+                  dragOver ? 'border-[#a97e5d] bg-[#f3ece3]' : 'hover:border-neutral-400'
+                } ${uploading ? 'opacity-60 cursor-wait' : ''}`}
+              >
+                <input
+                  ref={inputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={e => handleFiles(e.target.files)}
+                  disabled={uploading}
+                />
+                {uploading ? (
+                  <div className="flex flex-col items-center gap-3 cursor-default" onClick={e => e.stopPropagation()}>
+                    <div className="w-full max-w-xs">
+                      {batch && batch.total > 1 && (
+                        <p className="text-xs font-semibold text-neutral-500 mb-1.5 truncate">
+                          File {batch.index} of {batch.total} — {batch.name}
+                        </p>
+                      )}
+                      <div className="flex items-baseline justify-between mb-1.5">
+                        <span className="text-sm font-bold text-neutral-900">Uploading…</span>
+                        <span className="text-xs font-medium text-neutral-500">{formatElapsed(elapsedSec)} elapsed</span>
+                      </div>
+                      {/* Indeterminate — Supabase's client doesn't expose byte-level progress */}
+                      <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden relative">
+                        <div className="absolute inset-y-0 left-0 w-1/3 bg-[#a97e5d] rounded-full animate-[indeterminateBar_1.2s_ease-in-out_infinite]" />
+                      </div>
+                    </div>
                   </div>
-                  {/* Indeterminate — Supabase's client doesn't expose byte-level progress */}
-                  <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden relative">
-                    <div className="absolute inset-y-0 left-0 w-1/3 bg-[#a97e5d] rounded-full animate-[indeterminateBar_1.2s_ease-in-out_infinite]" />
-                  </div>
+                ) : (
+                  <>
+                    <div className="text-4xl mb-2">📤</div>
+                    <p className="font-semibold text-neutral-900">Drop files here or click to browse</p>
+                    <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to {formatBytes(MAX_FILE_BYTES)} each · multiple files OK</p>
+                  </>
+                )}
+              </div>
+
+              {/* File list */}
+              {loading ? (
+                <p className="text-neutral-400 text-sm text-center py-8">Loading files…</p>
+              ) : files.length === 0 ? (
+                <div className="text-center py-14 text-neutral-400 animate-fade-in">
+                  <div className="text-5xl mb-3">🗂️</div>
+                  <p className="font-medium">No files yet. Upload the first one above.</p>
                 </div>
-              </div>
-            ) : (
-              <>
-                <div className="text-4xl mb-2">📤</div>
-                <p className="font-semibold text-neutral-900">Drop files here or click to browse</p>
-                <p className="text-xs text-neutral-400 mt-1">zip · pdf · ppt · doc · xls · images · up to {formatBytes(MAX_FILE_BYTES)} each · multiple files OK</p>
-              </>
-            )}
-          </div>
+              ) : (
+                <div className="card overflow-hidden">
+                  {files.map((f, i) => (
+                    <div
+                      key={f.id}
+                      style={{ animationDelay: `${i * 40}ms` }}
+                      className="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b last:border-b-0 border-neutral-100 hover:bg-neutral-50 animate-fade-in"
+                    >
+                      <span className="text-2xl shrink-0">{fileIcon(f.name)}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-neutral-900 text-sm truncate">{f.name}</p>
+                        <p className="text-neutral-400 text-xs">
+                          {formatBytes(f.size)} · {f.uploadedBy} · {new Date(f.ts).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <a
+                        href={`${f.url}?download=${encodeURIComponent(f.name)}`}
+                        className="shrink-0 text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95"
+                      >
+                        ⬇ Download
+                      </a>
+                      <button
+                        onClick={() => setConfirmDelete(f)}
+                        className="shrink-0 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-2.5 py-1.5 rounded-full active:scale-95"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          {/* Clipboard — paste/save large text, no size limit like a file upload has */}
-          <div className="card p-5 mb-6">
-            <div className="flex items-baseline justify-between mb-2 gap-2">
-              <h2 className="font-bold text-neutral-900">Clipboard</h2>
-              <span className="text-xs text-neutral-400 shrink-0">
-                {clipboardWords.toLocaleString()} words · {formatBytes(new Blob([clipboardText]).size)}
-              </span>
-            </div>
-            <textarea
-              value={clipboardText}
-              onChange={e => setClipboardText(e.target.value)}
-              placeholder="Paste or type text here — notes, logs, drafts, anything. Saved on the server, no length limit."
-              className="w-full h-64 max-h-[60vh] overflow-y-auto resize-y rounded-xl border border-neutral-200 p-3 text-sm font-mono text-neutral-800 focus:outline-none focus:border-[#a97e5d]"
-            />
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-xs text-neutral-400">
-                {clipboardDirty ? 'Unsaved changes' : 'Saved'}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClearClipboard}
-                  disabled={savingClipboard || (!clipboardText && !meta.clipboard.text)}
-                  className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={handleSaveClipboard}
-                  disabled={savingClipboard || !clipboardDirty}
-                  className="text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {savingClipboard ? 'Saving…' : 'Save'}
-                </button>
+            {/* Right: clipboard — paste/save large text, no size limit like a file upload has */}
+            <div className="card p-5 flex flex-col">
+              <div className="flex items-baseline justify-between mb-2 gap-2">
+                <h2 className="font-bold text-neutral-900">Clipboard</h2>
+                <span className="text-xs text-neutral-400 shrink-0">
+                  {clipboardWords.toLocaleString()} words · {formatBytes(new Blob([clipboardText]).size)}
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* File list */}
-          {loading ? (
-            <p className="text-neutral-400 text-sm text-center py-8">Loading files…</p>
-          ) : files.length === 0 ? (
-            <div className="text-center py-14 text-neutral-400 animate-fade-in">
-              <div className="text-5xl mb-3">🗂️</div>
-              <p className="font-medium">No files yet. Upload the first one above.</p>
-            </div>
-          ) : (
-            <div className="card overflow-hidden">
-              {files.map((f, i) => (
-                <div
-                  key={f.id}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                  className="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b last:border-b-0 border-neutral-100 hover:bg-neutral-50 animate-fade-in"
-                >
-                  <span className="text-2xl shrink-0">{fileIcon(f.name)}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-neutral-900 text-sm truncate">{f.name}</p>
-                    <p className="text-neutral-400 text-xs">
-                      {formatBytes(f.size)} · {f.uploadedBy} · {new Date(f.ts).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <a
-                    href={`${f.url}?download=${encodeURIComponent(f.name)}`}
-                    className="shrink-0 text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95"
-                  >
-                    ⬇ Download
-                  </a>
+              <textarea
+                value={clipboardText}
+                onChange={e => setClipboardText(e.target.value)}
+                placeholder="Paste or type text here — notes, logs, drafts, anything. Saved on the server, no length limit."
+                className="w-full h-96 lg:h-[calc(100vh-16rem)] lg:max-h-[42rem] overflow-y-auto resize-y rounded-xl border border-neutral-200 p-3 text-sm font-mono text-neutral-800 focus:outline-none focus:border-[#a97e5d]"
+              />
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-xs text-neutral-400">
+                  {clipboardDirty ? 'Unsaved changes' : 'Saved'}
+                </span>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => setConfirmDelete(f)}
-                    className="shrink-0 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-2.5 py-1.5 rounded-full active:scale-95"
+                    onClick={handleClearClipboard}
+                    disabled={savingClipboard || (!clipboardText && !meta.clipboard.text)}
+                    className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Delete
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleSaveClipboard}
+                    disabled={savingClipboard || !clipboardDirty}
+                    className="text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {savingClipboard ? 'Saving…' : 'Save'}
                   </button>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </main>
 
