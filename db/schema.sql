@@ -101,4 +101,12 @@ create table if not exists meta (
 );
 insert into meta (id) values (1) on conflict (id) do nothing;
 alter table meta add column if not exists results jsonb not null default '{"text":""}';
-alter table meta add column if not exists clipboard jsonb not null default '{"text":""}';
+
+create table if not exists clipboards (
+  id bigserial primary key,
+  name text not null default 'Untitled',
+  text text not null default '',
+  created_by text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

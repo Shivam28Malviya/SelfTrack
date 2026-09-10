@@ -40,7 +40,7 @@ function fileIcon(name) {
 }
 
 export default function Files() {
-  const { isAdmin, initializing, meta, updateClipboard } = useAuth()
+  const { isAdmin, initializing } = useAuth()
   const { toast } = useToast()
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -48,9 +48,12 @@ export default function Files() {
   const [batch, setBatch] = useState(null) // { index, total, name }
   const [elapsedSec, setElapsedSec] = useState(0)
   const [dragOver, setDragOver] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(null)
-  const [clipboardText, setClipboardText] = useState(meta.clipboard.text)
-  const [savingClipboard, setSavingClipboard] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null) // { type: 'file'|'clipboard', id, label }
+  const [clipboards, setClipboards] = useState([])
+  const [clipboardsLoading, setClipboardsLoading] = useState(true)
+  const [drafts, setDrafts] = useState({}) // id -> { name, text }
+  const [savingId, setSavingId] = useState(null)
+  const [creatingClipboard, setCreatingClipboard] = useState(false)
   const inputRef = useRef(null)
   const elapsedTimerRef = useRef(null)
 
@@ -61,26 +64,65 @@ export default function Files() {
       else toast(data.error, 'error')
       setLoading(false)
     })
+    apiCall('GET', '/clipboards').then(data => {
+      if (data.success) {
+        setClipboards(data.clipboards)
+        setDrafts(Object.fromEntries(data.clipboards.map(c => [c.id, { name: c.name, text: c.text }])))
+      } else toast(data.error, 'error')
+      setClipboardsLoading(false)
+    })
   }, [isAdmin])
 
-  const clipboardDirty = clipboardText !== meta.clipboard.text
-  const clipboardWords = clipboardText.trim() ? clipboardText.trim().split(/\s+/).length : 0
+  const draftFor = (c) => drafts[c.id] || { name: c.name, text: c.text }
+  const isDirty = (c) => {
+    const d = draftFor(c)
+    return d.name !== c.name || d.text !== c.text
+  }
+  const setDraft = (id, patch) => setDrafts(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }))
 
-  const handleSaveClipboard = async () => {
-    setSavingClipboard(true)
-    const data = await updateClipboard({ text: clipboardText })
-    setSavingClipboard(false)
-    if (data.success) toast('Clipboard saved.', 'success')
-    else toast(data.error || 'Could not save clipboard.', 'error')
+  const handleCreateClipboard = async () => {
+    setCreatingClipboard(true)
+    const data = await apiCall('POST', '/clipboards', { name: 'Untitled', text: '' })
+    setCreatingClipboard(false)
+    if (data.success) {
+      setClipboards(data.clipboards)
+      setDrafts(prev => ({
+        ...Object.fromEntries(data.clipboards.map(c => [c.id, prev[c.id] || { name: c.name, text: c.text }])),
+      }))
+      toast('Clipboard created.', 'success')
+    } else {
+      toast(data.error || 'Could not create clipboard.', 'error')
+    }
   }
 
-  const handleClearClipboard = async () => {
-    setClipboardText('')
-    setSavingClipboard(true)
-    const data = await updateClipboard({ text: '' })
-    setSavingClipboard(false)
-    if (data.success) toast('Clipboard cleared.', 'success')
-    else toast(data.error || 'Could not clear clipboard.', 'error')
+  const handleSaveClipboard = async (c) => {
+    const d = draftFor(c)
+    setSavingId(c.id)
+    const data = await apiCall('PUT', `/clipboards/${c.id}`, { name: d.name.trim() || 'Untitled', text: d.text })
+    setSavingId(null)
+    if (data.success) {
+      setClipboards(data.clipboards)
+      toast('Clipboard saved.', 'success')
+    } else {
+      toast(data.error || 'Could not save clipboard.', 'error')
+    }
+  }
+
+  const handleDeleteClipboard = async () => {
+    const target = confirmDelete
+    setConfirmDelete(null)
+    const data = await apiCall('DELETE', `/clipboards/${target.id}`)
+    if (data.success) {
+      setClipboards(data.clipboards)
+      setDrafts(prev => {
+        const next = { ...prev }
+        delete next[target.id]
+        return next
+      })
+      toast(`"${target.label}" deleted.`, 'success')
+    } else {
+      toast(data.error, 'error')
+    }
   }
 
   if (!initializing && !isAdmin) return <Navigate to="/" replace />
@@ -167,16 +209,21 @@ export default function Files() {
     }
   }
 
-  const handleDelete = async () => {
-    const f = confirmDelete
+  const handleDeleteFile = async () => {
+    const target = confirmDelete
     setConfirmDelete(null)
-    const data = await apiCall('DELETE', `/files/${f.id}`)
+    const data = await apiCall('DELETE', `/files/${target.id}`)
     if (data.success) {
       setFiles(data.files)
-      toast(`"${f.name}" deleted.`, 'success')
+      toast(`"${target.label}" deleted.`, 'success')
     } else {
       toast(data.error, 'error')
     }
+  }
+
+  const handleConfirmDelete = () => {
+    if (confirmDelete?.type === 'clipboard') return handleDeleteClipboard()
+    return handleDeleteFile()
   }
 
   return (
@@ -266,7 +313,7 @@ export default function Files() {
                         ⬇ Download
                       </a>
                       <button
-                        onClick={() => setConfirmDelete(f)}
+                        onClick={() => setConfirmDelete({ type: 'file', id: f.id, label: f.name })}
                         className="shrink-0 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-2.5 py-1.5 rounded-full active:scale-95"
                       >
                         Delete
@@ -277,41 +324,79 @@ export default function Files() {
               )}
             </div>
 
-            {/* Right: clipboard — paste/save large text, no size limit like a file upload has */}
-            <div className="card p-5 flex flex-col">
-              <div className="flex items-baseline justify-between mb-2 gap-2">
-                <h2 className="font-bold text-neutral-900">Clipboard</h2>
-                <span className="text-xs text-neutral-400 shrink-0">
-                  {clipboardWords.toLocaleString()} words · {formatBytes(new Blob([clipboardText]).size)}
-                </span>
-              </div>
-              <textarea
-                value={clipboardText}
-                onChange={e => setClipboardText(e.target.value)}
-                placeholder="Paste or type text here — notes, logs, drafts, anything. Saved on the server, no length limit."
-                className="w-full h-96 lg:h-[calc(100vh-16rem)] lg:max-h-[42rem] overflow-y-auto resize-y rounded-xl border border-neutral-200 p-3 text-sm font-mono text-neutral-800 focus:outline-none focus:border-[#a97e5d]"
-              />
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-xs text-neutral-400">
-                  {clipboardDirty ? 'Unsaved changes' : 'Saved'}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleClearClipboard}
-                    disabled={savingClipboard || (!clipboardText && !meta.clipboard.text)}
-                    className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    onClick={handleSaveClipboard}
-                    disabled={savingClipboard || !clipboardDirty}
-                    className="text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {savingClipboard ? 'Saving…' : 'Save'}
-                  </button>
+            {/* Right: clipboards — multiple named text snippets, each pasted/saved/edited/deleted independently */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-bold text-neutral-900">Clipboards</h2>
+                  <p className="text-xs text-neutral-400">Paste and save large text — no length limit.</p>
                 </div>
+                <button
+                  onClick={handleCreateClipboard}
+                  disabled={creatingClipboard}
+                  className="shrink-0 text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-50"
+                >
+                  {creatingClipboard ? 'Creating…' : '+ New'}
+                </button>
               </div>
+
+              {clipboardsLoading ? (
+                <p className="text-neutral-400 text-sm text-center py-8">Loading clipboards…</p>
+              ) : clipboards.length === 0 ? (
+                <div className="text-center py-14 text-neutral-400 animate-fade-in">
+                  <div className="text-5xl mb-3">📋</div>
+                  <p className="font-medium">No clipboards yet. Create one above.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {clipboards.map((c, i) => {
+                    const d = draftFor(c)
+                    const dirty = isDirty(c)
+                    const words = d.text.trim() ? d.text.trim().split(/\s+/).length : 0
+                    return (
+                      <div key={c.id} style={{ animationDelay: `${i * 40}ms` }} className="card p-4 animate-fade-in">
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            value={d.name}
+                            onChange={e => setDraft(c.id, { name: e.target.value })}
+                            placeholder="Untitled"
+                            className="flex-1 min-w-0 font-semibold text-neutral-900 text-sm bg-transparent border-b border-transparent hover:border-neutral-200 focus:border-[#a97e5d] focus:outline-none px-0.5 py-1"
+                          />
+                          <span className="text-xs text-neutral-400 shrink-0">
+                            {words.toLocaleString()} words · {formatBytes(new Blob([d.text]).size)}
+                          </span>
+                        </div>
+                        <textarea
+                          value={d.text}
+                          onChange={e => setDraft(c.id, { text: e.target.value })}
+                          placeholder="Paste or type text here…"
+                          className="w-full h-48 overflow-y-auto resize-y rounded-xl border border-neutral-200 p-3 text-sm font-mono text-neutral-800 focus:outline-none focus:border-[#a97e5d]"
+                        />
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs text-neutral-400">
+                            {dirty ? 'Unsaved changes' : `Saved · ${new Date(c.updatedTs).toLocaleString()}`}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setConfirmDelete({ type: 'clipboard', id: c.id, label: c.name })}
+                              className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 border border-red-300/30 font-semibold px-3 py-1.5 rounded-full active:scale-95"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={() => handleSaveClipboard(c)}
+                              disabled={savingId === c.id || !dirty}
+                              className="text-xs bg-neutral-900 hover:bg-neutral-800 text-white font-semibold px-3 py-1.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {savingId === c.id ? 'Saving…' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -319,11 +404,15 @@ export default function Files() {
 
       <ConfirmDialog
         open={!!confirmDelete}
-        title={`Delete ${confirmDelete?.name}?`}
-        message="The file will be permanently removed from storage. This cannot be undone."
-        confirmLabel="Delete file"
+        title={`Delete "${confirmDelete?.label}"?`}
+        message={
+          confirmDelete?.type === 'clipboard'
+            ? 'This clipboard and its text will be permanently deleted. This cannot be undone.'
+            : 'The file will be permanently removed from storage. This cannot be undone.'
+        }
+        confirmLabel={confirmDelete?.type === 'clipboard' ? 'Delete clipboard' : 'Delete file'}
         danger
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmDelete(null)}
       />
     </div>

@@ -24,6 +24,32 @@ async function listFiles() {
   return rows.map(rowToFile)
 }
 
+const rowToClipboard = (c) => ({
+  id: String(c.id), name: c.name, text: c.text,
+  createdBy: c.created_by, ts: new Date(c.created_at).getTime(), updatedTs: new Date(c.updated_at).getTime(),
+})
+
+// Self-heals the table on first use — this DB has no migration runner, so a
+// schema.sql addition needs a manual create unless a route does it here.
+async function ensureClipboardsTable() {
+  await sql`
+    create table if not exists clipboards (
+      id bigserial primary key,
+      name text not null default 'Untitled',
+      text text not null default '',
+      created_by text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `
+}
+
+async function listClipboards() {
+  await ensureClipboardsTable()
+  const { rows } = await sql`select * from clipboards order by updated_at desc`
+  return rows.map(rowToClipboard)
+}
+
 async function resetAllScores() {
   await sql`delete from history`
   await sql`update users set score = 0, wins = 0`
@@ -331,6 +357,47 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, files: await listFiles() })
     }
 
+    // ---- clipboards (admin) ----
+    // Multiple named text snippets, each independently created/edited/deleted —
+    // same list shape as files, just text instead of a Storage object.
+    if (route === '/clipboards' && method === 'GET') {
+      await requireAdmin(req)
+      return res.status(200).json({ success: true, clipboards: await listClipboards() })
+    }
+
+    if (route === '/clipboards' && method === 'POST') {
+      const actor = await requireAdmin(req)
+      await ensureClipboardsTable()
+      const { name, text } = req.body || {}
+      await sql`
+        insert into clipboards (name, text, created_by)
+        values (${(name && name.trim()) || 'Untitled'}, ${text || ''}, ${actor.username})
+      `
+      return res.status(200).json({ success: true, clipboards: await listClipboards() })
+    }
+
+    const clipboardMatch = route.match(/^\/clipboards\/(\d+)$/)
+    if (clipboardMatch && method === 'PUT') {
+      await requireAdmin(req)
+      await ensureClipboardsTable()
+      const { name, text } = req.body || {}
+      await sql`
+        update clipboards set
+          name = coalesce(${name ?? null}, name),
+          text = coalesce(${text ?? null}, text),
+          updated_at = now()
+        where id = ${clipboardMatch[1]}
+      `
+      return res.status(200).json({ success: true, clipboards: await listClipboards() })
+    }
+
+    if (clipboardMatch && method === 'DELETE') {
+      await requireAdmin(req)
+      await ensureClipboardsTable()
+      await sql`delete from clipboards where id = ${clipboardMatch[1]}`
+      return res.status(200).json({ success: true, clipboards: await listClipboards() })
+    }
+
     // ---- kudos ----
     if (route === '/kudos' && method === 'POST') {
       const actor = await requireAuth(req)
@@ -366,16 +433,6 @@ export default async function handler(req, res) {
     if (route === '/meta/results' && method === 'POST') {
       const actor = await requireAdmin(req)
       await sql`update meta set results = ${JSON.stringify(req.body || {})}::jsonb where id = 1`
-      const state = await buildState(actor.id)
-      return res.status(200).json({ success: true, ...state })
-    }
-
-    if (route === '/meta/clipboard' && method === 'POST') {
-      const actor = await requireAdmin(req)
-      // Self-heals the column on first use — this DB has no migration runner,
-      // so schema.sql changes need a manual ALTER unless a route does it here.
-      await sql`alter table meta add column if not exists clipboard jsonb not null default '{"text":""}'`
-      await sql`update meta set clipboard = ${JSON.stringify(req.body || {})}::jsonb where id = 1`
       const state = await buildState(actor.id)
       return res.status(200).json({ success: true, ...state })
     }
