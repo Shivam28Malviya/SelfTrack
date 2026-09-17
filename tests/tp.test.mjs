@@ -213,3 +213,58 @@ test('minutes late are derived, not typed, and respect the grace period', () => 
   assert.equal(late('09:41', '09:30', 10), 1)
   assert.equal(late('08:00', '09:30', 10), 0)   // early, never negative
 })
+
+// ---- phase 4: tasks and metrics ----
+import { parseTaskInput, applyStatusRules } from '../lib/tp/tasks.js'
+import { resolvePeriod } from '../lib/tp/metrics.js'
+
+test('marking a task done forces 100% and stamps a completion time', () => {
+  const out = applyStatusRules(parseTaskInput({ title: 'Wave fix', status: 'done' }), null)
+  assert.equal(out.progress_pct, 100)
+  assert.ok(out.completed_at)
+})
+
+test('reopening a done task clears completion and counts the reopen', () => {
+  const current = { status: 'done', progress_pct: 100, reopened_count: 1, blocked_reason: '' }
+  const out = applyStatusRules({ status: 'in_progress' }, current)
+  assert.equal(out.completed_at, null)
+  assert.equal(out.reopened_count, 2)
+  assert.equal(out.progress_pct, 90)   // no longer complete
+})
+
+test('blocking without a reason is refused, with one is allowed', () => {
+  throws(() => applyStatusRules({ status: 'blocked' }, { status: 'todo', blocked_reason: '' }))
+  const out = applyStatusRules({ status: 'blocked', blocked_reason: 'Waiting on client data' }, { status: 'todo' })
+  assert.equal(out.status, 'blocked')
+})
+
+test('a reason already on the task satisfies a later block', () => {
+  const out = applyStatusRules({ status: 'blocked' }, { status: 'todo', blocked_reason: 'Waiting on access' })
+  assert.equal(out.status, 'blocked')
+})
+
+test('progress and status cannot disagree', () => {
+  throws(() => applyStatusRules({ progress_pct: 100, status: 'in_progress' }, { status: 'todo' }),
+    /should be marked done/)
+})
+
+test('task input rejects out-of-range hours and a short title', () => {
+  throws(() => parseTaskInput({ title: 'ab' }))
+  throws(() => parseTaskInput({ title: 'Valid title', estHours: 900 }))
+  throws(() => parseTaskInput({ title: 'Valid title', actualHours: -1 }))
+  const ok = parseTaskInput({ title: 'Valid title', estHours: '', actualHours: '' })
+  assert.equal(ok.est_hours, null)
+  assert.equal(ok.actual_hours, null)
+})
+
+test('periods resolve to whole months and an explicit range wins', () => {
+  const month = resolvePeriod({ period: 'month', to: '2026-09-17' })
+  assert.equal(month.from, '2026-08-01')
+  assert.equal(month.to, '2026-09-17')
+  const quarter = resolvePeriod({ period: 'quarter', to: '2026-09-17' })
+  assert.equal(quarter.from, '2026-06-01')
+  const year = resolvePeriod({ period: 'year', to: '2026-01-15' })
+  assert.equal(year.from, '2025-01-01')
+  const explicit = resolvePeriod({ from: '2026-01-01', to: '2026-02-01' })
+  assert.deepEqual(explicit, { from: '2026-01-01', to: '2026-02-01' })
+})

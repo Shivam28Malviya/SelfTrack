@@ -14,6 +14,10 @@ import {
 import { importPeople, IMPORT_TEMPLATE_HEADERS } from '../../lib/tp/personImport.js'
 import { HANDLERS, ENTRY_TYPES } from '../../lib/tp/entries.js'
 import { listEntries, updateEntry, deleteEntry, listAudit, FEED_KINDS } from '../../lib/tp/entryFeed.js'
+import { createTask, updateTask, getTask, listTasks, taskHistory, TASK_STATUSES } from '../../lib/tp/tasks.js'
+import {
+  teamMetrics, personMetrics, monthlyTrend, onTimeByPerson, taskAging, effortScatter, resolvePeriod,
+} from '../../lib/tp/metrics.js'
 import { sql } from '../../lib/db.js'
 
 export default async function handler(req, res) {
@@ -257,6 +261,66 @@ export default async function handler(req, res) {
       const ctx = await requireTp(req)
       requireRole(ctx, 'admin', 'manager')
       return res.status(200).json({ success: true, ...(await listAudit(ctx, query)) })
+    }
+
+    // ---- tasks ----
+    if (route === '/tasks' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, statuses: TASK_STATUSES, ...(await listTasks(ctx, query)) })
+    }
+
+    if (route === '/tasks' && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      return res.status(200).json({ success: true, task: await createTask(ctx, req.body || {}) })
+    }
+
+    const taskMatch = route.match(/^\/tasks\/(\d+)$/)
+    if (taskMatch && method === 'GET') {
+      const ctx = await requireTp(req)
+      const task = await getTask(parseId(taskMatch[1], 'Task'))
+      if (!task) throw new HttpError(404, 'Task not found.')
+      if (task.ownerId != null) assertCanSeePerson(ctx, task.ownerId)
+      return res.status(200).json({ success: true, task, history: await taskHistory(task.id) })
+    }
+
+    if (taskMatch && method === 'PUT') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      return res.status(200).json({ success: true, task: await updateTask(ctx, taskMatch[1], req.body || {}) })
+    }
+
+    // ---- metrics ----
+    if (route === '/metrics' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, metrics: await teamMetrics(ctx, query) })
+    }
+
+    if (route === '/metrics/trend' && method === 'GET') {
+      const ctx = await requireTp(req)
+      const personId = query.personId ? parseId(query.personId, 'Person') : null
+      if (personId) assertCanSeePerson(ctx, personId)
+      const months = Math.min(24, Math.max(2, Number(query.months) || 6))
+      return res.status(200).json({ success: true, trend: await monthlyTrend(ctx, { months, personId }) })
+    }
+
+    if (route === '/metrics/delivery' && method === 'GET') {
+      const ctx = await requireTp(req)
+      const period = resolvePeriod(query)
+      const [byPerson, aging, scatter] = await Promise.all([
+        onTimeByPerson(ctx, period),
+        taskAging(ctx),
+        effortScatter(ctx, period),
+      ])
+      return res.status(200).json({ success: true, period, byPerson, aging, scatter })
+    }
+
+    const personMetricsMatch = route.match(/^\/people\/(\d+)\/metrics$/)
+    if (personMetricsMatch && method === 'GET') {
+      const ctx = await requireTp(req)
+      const personId = parseId(personMetricsMatch[1], 'Person')
+      assertCanSeePerson(ctx, personId)
+      return res.status(200).json({ success: true, metrics: await personMetrics(ctx, personId, query) })
     }
 
     return res.status(404).json({ success: false, error: 'Not found.' })

@@ -232,8 +232,8 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 | 1 | Migrations, roles and row scoping, config, API split, app shell, people list | done |
 | 2 | Add and edit people, import, manager tree editing | done |
 | 3 | Quick log, entry list, audit viewer | done |
-| 4 | Tasks and delivery dashboard, metric endpoints and snapshots | next |
-| 5 | Attendance calendar, holidays, leave, late logins | |
+| 4 | Tasks and delivery dashboard, metric endpoints and snapshots | done |
+| 5 | Attendance calendar, holidays, leave, late logins | next |
 | 6 | Skill catalogue, self and manager ratings, heatmap, certificates | |
 | 7 | Attention engine, overview KPIs, notifications, exports | |
 | 8 | Accessibility audit, responsive down to tablet, mobile, performance | |
@@ -329,3 +329,41 @@ Capture, and the ability to correct it.
   arrival against a 09:30 shift becomes a tracked infraction.
 - Task updates are **not** an entry type. A task status change belongs with the
   task and its event history, and lands in phase 4.
+
+### Phase 4 delivered
+
+- `lib/tp/tasks.js` — task create, edit, list and status history. The rules the
+  schema cannot express live in `applyStatusRules`: `done` forces 100% and
+  stamps a completion time, reopening clears it and increments the reopen
+  count, blocking requires a reason, and a task at 100% that is not done is
+  refused rather than drawn as a full bar next to "in progress".
+- `tp_task_event` is the source of truth for reopen counts and aging, so
+  neither can be typed over.
+- `lib/tp/metrics.js` — every formula from section 3, aggregated in SQL:
+  - the on-time denominator includes open tasks already past due, so an
+    overdue task that is never finished cannot improve the figure
+  - a zero denominator returns `null`, which the UI renders as an em dash with
+    the reason, never `0%`
+  - task aging is counted in **working** days from each owner's region
+    calendar; calendar days would age a Friday deadline by three over a
+    weekend nobody worked
+  - the attendance denominator is each person's own working days from their
+    joining date, not a hardcoded 21
+  - overtime ships with a coverage count, because manual entry makes a low
+    total ambiguous
+  - utilization still returns `null`: nothing records billable hours
+- Monthly trends read `tp_metric_snapshot` and compute what is missing. A
+  closed month never changes, so it is computed once; the current month is
+  never cached.
+- Migration 002 replaces the snapshot unique constraint with two partial
+  indexes: a plain unique constraint does not dedupe rows whose `person_id` is
+  NULL, so every team-scope upsert was inserting instead of updating.
+- Charts (`src/components/tp/charts/Primitives.jsx`) follow one set of rules:
+  bars are a share of an explicit maximum so nothing overflows its track; a
+  metric with no data shows an em dash rather than a zero-length bar; every
+  chart has a "show values" table; marks have tooltips on hover and on
+  keyboard focus; the target on the on-time chart is a grey reference mark, not
+  a series.
+- Chart hues are three validated categorical slots (`--tp-cat-1..3`), assigned
+  in fixed order and never cycled. The navy ink token is too dark and too
+  low-chroma to serve as one, so it stays an ink colour.

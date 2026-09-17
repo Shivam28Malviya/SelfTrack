@@ -219,3 +219,16 @@ button, a, input, select, textarea {
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* Categorical chart hues. The navy ink token is too dark and too low-chroma to
+   serve as a categorical slot (it fails the lightness-band and chroma checks),
+   so charts with more than one series draw from these three, assigned in a
+   fixed order and never cycled. Validated for colour-vision deficiency
+   separation against the white chart surface. */
+.tp {
+  --tp-cat-1: #4577c0;
+  --tp-cat-2: #c9791a;
+  --tp-cat-3: #2f8f6b;
+  --tp-grid: #e8ebf0;
+  --tp-axis: #b9c3d3;
+}

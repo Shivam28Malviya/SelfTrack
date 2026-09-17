@@ -19,6 +19,8 @@ import TpPersonForm from './pages/tp/PersonForm'
 import TpImport from './pages/tp/Import'
 import TpEntries from './pages/tp/Entries'
 import TpAudit from './pages/tp/Audit'
+import TpTask from './pages/tp/Task'
+import TpTaskForm from './pages/tp/TaskForm'
 import TpDelivery from './pages/tp/Delivery'
 import TpAttendance from './pages/tp/Attendance'
 import TpSkills from './pages/tp/Skills'
@@ -88,6 +90,13 @@ export default function App() {
           <TpGuard roles={['admin', 'manager', 'member']} what="attendance"><TpAttendance /></TpGuard>
         } />
         <Route path="skills" element={<TpSkills />} />
+        <Route path="tasks/new" element={
+          <TpGuard roles={['admin', 'manager']} what="creating tasks"><TpTaskForm /></TpGuard>
+        } />
+        <Route path="tasks/:id" element={<TpTask />} />
+        <Route path="tasks/:id/edit" element={
+          <TpGuard roles={['admin', 'manager']} what="editing tasks"><TpTaskForm /></TpGuard>
+        } />
         <Route path="entries" element={<TpEntries />} />
         <Route path="audit" element={
           <TpGuard roles={['admin', 'manager']} what="the audit trail"><TpAudit /></TpGuard>
