@@ -386,3 +386,37 @@ test('the heatmap label colour that was replaced really did fail', () => {
   // failure — recorded here so nobody "restores" it believing it was broken.
   assert.ok(contrast('#5E6470', '#dfe6ef') >= 4.5)
 })
+
+// ---- revalidation pass: the defects found reviewing the finished code ----
+import { validateConfigValue } from '../lib/tp/config.js'
+import { scopeIsEmpty } from '../lib/tp/metrics.js'
+
+test('config values are type-checked against their defaults', () => {
+  assert.equal(validateConfigValue('targets', { on_time_pct: '85' }).on_time_pct, 85)
+  // Fields left out keep their default rather than vanishing.
+  assert.equal(validateConfigValue('targets', { on_time_pct: 85 }).cert_target, 10)
+  assert.equal(validateConfigValue('workday', { shift_start: { IN: '10:00' } }).shift_start.IN, '10:00')
+  assert.deepEqual(validateConfigValue('skill_levels', ['a', 'b']), ['a', 'b'])
+
+  throws(() => validateConfigValue('targets', 'hello'), /named values/)
+  throws(() => validateConfigValue('targets', { on_time_pct: 'abc' }), /must be a number/)
+  throws(() => validateConfigValue('targets', { on_time_pct: -5 }), /cannot be negative/)
+  throws(() => validateConfigValue('skill_levels', { a: 1 }), /must be a list/)
+  throws(() => validateConfigValue('skill_levels', [1, 2]), /list of text/)
+  throws(() => validateConfigValue('nope', {}), /Unknown setting/)
+})
+
+test('an empty scope is recognised, so metrics can report nothing instead of zero', () => {
+  assert.equal(scopeIsEmpty({ scope: 'none', ids: [] }), true)
+  assert.equal(scopeIsEmpty({ scope: 'ids', ids: [] }), true)   // a login linked to nobody
+  assert.equal(scopeIsEmpty({ scope: 'ids', ids: [7] }), false)
+  assert.equal(scopeIsEmpty({ scope: 'all', ids: null }), false)
+})
+
+test('a bigint id from the driver does not compare equal to a number', () => {
+  // Postgres returns int8 as a string. This is why the self-read audit check
+  // fired on every read: '7' !== 7 is always true.
+  const fromDriver = '7'
+  assert.notEqual(fromDriver, 7)
+  assert.equal(Number(fromDriver), 7)
+})

@@ -17,7 +17,8 @@ export const tpDelete = (path) => apiCall('DELETE', `/tp${path}`)
 export const TP_ROLES = ['admin', 'manager', 'member', 'spectator']
 
 /** Screens a role may open. Mirrors docs/teampulse-spec.md section 2 — the
- *  server enforces the same thing per row; this only shapes the nav. */
+ *  server enforces the same thing per row; this only shapes the nav.
+ *  Spectators never reach any of it: the API refuses them at the door. */
 export const canOpen = {
   overview: () => true,
   people: () => true,

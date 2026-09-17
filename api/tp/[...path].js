@@ -3,7 +3,7 @@
 // per-row access rules in one place.
 import { HttpError } from '../../lib/auth.js'
 import { requireTp, assertCanSeePerson, requireRole } from '../../lib/tp/roles.js'
-import { getConfig, setConfig, DEFAULTS } from '../../lib/tp/config.js'
+import { getConfig, setConfig, DEFAULTS, validateConfigValue } from '../../lib/tp/config.js'
 import { listPeople, getPerson } from '../../lib/tp/people.js'
 import { auditRead, audit } from '../../lib/tp/audit.js'
 import { id as parseId, oneOf, str } from '../../lib/tp/validate.js'
@@ -23,7 +23,8 @@ import { exportCsv, EXPORT_KINDS } from '../../lib/tp/exports.js'
 import { pushNotif } from '../../lib/state.js'
 import {
   listSkills, addSkill, updateSkill, rateSkill, heatmap, singlePointsOfFailure,
-  findBySkill, listCerts, saveCert, deleteCert, skillLevelLabels,
+  findBySkill, listCerts, expiringCertCount, saveCert, deleteCert, skillLevelLabels,
+  INDEPENDENT_LEVEL,
 } from '../../lib/tp/skills.js'
 import {
   monthGrid, lateLoginTable, absenceByType, unusedLeave,
@@ -69,9 +70,13 @@ export default async function handler(req, res) {
       const { key, value } = req.body || {}
       const k = oneOf(key, 'key', Object.keys(DEFAULTS))
       if (value === undefined || value === null) throw new HttpError(400, 'value is required.')
+      // Validated against the shape of the defaults. Storing a string where a
+      // number belongs breaks every screen that reads it, and the failure
+      // surfaces far away from the settings form that caused it.
+      const checked = validateConfigValue(k, value)
       const before = (await getConfig())[k]
-      await setConfig(k, value)
-      await audit({ actor: ctx.user, action: 'config.update', entity: 'config', before: { [k]: before }, after: { [k]: value } })
+      await setConfig(k, checked)
+      await audit({ actor: ctx.user, action: 'config.update', entity: 'config', before: { [k]: before }, after: { [k]: checked } })
       return res.status(200).json({ success: true, config: await getConfig() })
     }
 
@@ -100,7 +105,10 @@ export default async function handler(req, res) {
       const person = await getPerson(personId)
       if (!person) throw new HttpError(404, 'Person not found.')
       // Reading someone else's record is itself an auditable event.
-      if (ctx.self?.id !== personId) await auditRead(ctx.user, 'person', personId)
+      // Number(): Postgres returns bigint as a string, so comparing the raw
+      // value with !== a number was always true and logged every self-read
+      // as a read of someone else's record.
+      if (Number(ctx.self?.id) !== personId) await auditRead(ctx.user, 'person', personId)
       return res.status(200).json({ success: true, person })
     }
 
@@ -150,7 +158,10 @@ export default async function handler(req, res) {
       // silently overwrite each other.
       const { rows: current } = await sql`select updated_at from tp_person where id = ${personId}`
       const expected = req.body?.updatedAt
-      if (expected && new Date(expected).getTime() !== new Date(current[0].updated_at).getTime()) {
+      // Required, not optional: omitting it previously skipped the check
+      // entirely, so the protection only applied to callers who asked for it.
+      if (!expected) throw new HttpError(400, 'updatedAt is required so a concurrent edit can be detected.')
+      if (new Date(expected).getTime() !== new Date(current[0].updated_at).getTime()) {
         return res.status(409).json({
           success: false,
           error: 'Someone else changed this person while you were editing. Review the current version and try again.',
@@ -292,7 +303,13 @@ export default async function handler(req, res) {
       const ctx = await requireTp(req)
       const task = await getTask(parseId(taskMatch[1], 'Task'))
       if (!task) throw new HttpError(404, 'Task not found.')
-      if (task.ownerId != null) assertCanSeePerson(ctx, task.ownerId)
+      if (task.ownerId != null) {
+        assertCanSeePerson(ctx, task.ownerId)
+      } else if (ctx.role !== 'admin' && ctx.role !== 'manager') {
+        // An unassigned task has no owner to scope by. listTasks filters it out
+        // of a scoped list, so letting anyone open it by id was a hole.
+        throw new HttpError(404, 'Task not found.')
+      }
       return res.status(200).json({ success: true, task, history: await taskHistory(task.id) })
     }
 
@@ -337,21 +354,28 @@ export default async function handler(req, res) {
       const person = await getPerson(personId)
       if (!person) throw new HttpError(404, 'Person not found.')
 
-      const [metrics, trend, tasks, grid, certs, achievements, balance, attention] = await Promise.all([
-        personMetrics(ctx, personId, query),
-        monthlyTrend(ctx, { months: 6, personId }),
-        listTasks(ctx, { ownerId: String(personId), status: 'open', limit: '10', sort: 'due' }),
-        monthGrid(ctx, { month: query.month, personId: String(personId) }),
-        listCerts(ctx, { personId: String(personId) }),
-        listEntries(ctx, { personId: String(personId), kind: 'achievement', limit: '5' }),
-        leaveBalance(personId),
-        attentionReport(ctx),
-      ])
+      const [metrics, trend, tasks, grid, certs, achievements, balance, attention, skills] =
+        await Promise.all([
+          personMetrics(ctx, personId, query),
+          monthlyTrend(ctx, { months: 6, personId }),
+          listTasks(ctx, { ownerId: String(personId), status: 'open', limit: '10', sort: 'due' }),
+          monthGrid(ctx, { month: query.month, personId: String(personId) }),
+          listCerts(ctx, { personId: String(personId) }),
+          listEntries(ctx, { personId: String(personId), kind: 'achievement', limit: '5' }),
+          leaveBalance(personId),
+          // Both are person-scoped: building the whole team's attention report
+          // and skill grid to pick one row out made opening a profile cost
+          // O(team). The heatmap was also awaited outside this batch.
+          attentionReport(ctx, { personId }),
+          heatmap(ctx, { personId }),
+        ])
 
-      const skills = await heatmap(ctx)
       const myRow = skills.rows.find(r => r.personId === personId)
 
-      if (ctx.self?.id !== personId) await auditRead(ctx.user, 'person', personId)
+      // Number(): Postgres returns bigint as a string, so comparing the raw
+      // value with !== a number was always true and logged every self-read
+      // as a read of someone else's record.
+      if (Number(ctx.self?.id) !== personId) await auditRead(ctx.user, 'person', personId)
 
       return res.status(200).json({
         success: true,
@@ -470,7 +494,9 @@ export default async function handler(req, res) {
         singlePointsOfFailure(ctx),
         skillLevelLabels(),
       ])
-      return res.status(200).json({ success: true, ...map, spof, levels })
+      // The threshold the cover rule uses, so the screen labels it from the
+      // same source the calculation reads rather than hardcoding "L3".
+      return res.status(200).json({ success: true, ...map, spof, levels, independentLevel: INDEPENDENT_LEVEL })
     }
 
     if (route === '/skills/catalogue' && method === 'GET') {
@@ -530,11 +556,12 @@ export default async function handler(req, res) {
     // ---- overview ----
     if (route === '/overview' && method === 'GET') {
       const ctx = await requireTp(req)
-      const [metrics, attention, shape, certs, trend] = await Promise.all([
+      const [metrics, attention, shape, expiringCerts, trend] = await Promise.all([
         teamMetrics(ctx, query),
         attentionReport(ctx),
         teamShape(ctx),
-        listCerts(ctx),
+        // A count, not the whole certificate list: the overview shows a number.
+        expiringCertCount(ctx),
         monthlyTrend(ctx, { months: 6 }),
       ])
       return res.status(200).json({
@@ -543,7 +570,7 @@ export default async function handler(req, res) {
         attention,
         shape,
         trend,
-        expiringCerts: certs.expiring.length,
+        expiringCerts,
       })
     }
 

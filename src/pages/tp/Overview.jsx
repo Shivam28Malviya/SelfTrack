@@ -39,6 +39,23 @@ export default function TpOverview() {
 
   const m = data.metrics
   const t = m.targets || {}
+
+  // A member whose login is not linked to a person can see nobody, which is
+  // not the same as everyone having a clean month.
+  if (m.scopeEmpty) {
+    return (
+      <TpLayout title="Overview">
+        <section className="tp-panel">
+          <h1 className="tp-h1">Nothing to show yet</h1>
+          <p className="mt-3 m-0 max-w-[560px] text-base leading-relaxed" style={{ color: 'var(--tp-muted)' }}>
+            Your login is not linked to anyone in TeamPulse, so there is no
+            record to report on. An administrator can link it to your profile.
+            Until then this is empty rather than zero — the two are not the same.
+          </p>
+        </section>
+      </TpLayout>
+    )
+  }
   const flagged = (data.attention.people || []).filter(p => p.status !== 'On track')
   const headcount = data.shape.headcount
 

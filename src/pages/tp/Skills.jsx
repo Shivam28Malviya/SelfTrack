@@ -213,7 +213,9 @@ export default function TpSkills() {
           <div className="flex flex-col gap-5">
             <ChartFrame
               title="Single points of failure"
-              subtitle={`Skills with at most one active person rated L${3} or above by a manager`}
+              subtitle={`Skills with at most one active person rated ${
+                data.independentLevel == null ? 'at the independent level' : `L${data.independentLevel} ${levels[data.independentLevel] || ''}`
+              } or above by a manager`}
             >
               {data.spof.length === 0 ? (
                 <p className="m-0 py-6 text-center text-sm" style={{ color: 'var(--tp-muted)' }}>

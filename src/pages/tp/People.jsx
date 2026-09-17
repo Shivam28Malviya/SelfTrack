@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import TpLayout from '../../components/tp/TpLayout'
 import StatusPill from '../../components/tp/StatusPill'
@@ -23,6 +23,12 @@ export default function TpPeople() {
   const get = (k, dflt = '') => params.get(k) ?? dflt
   const view = get('view', 'table')
   const page = Number(get('page', '1')) || 1
+
+  // The search box is typed into; the URL (and the request) follow 300ms
+  // later. Updating them per keystroke meant a query per character.
+  const [searchText, setSearchText] = useState(() => params.get('q') ?? '')
+  const searchTimer = useRef(null)
+  useEffect(() => () => clearTimeout(searchTimer.current), [])
 
   const setParam = (patch) => {
     const next = new URLSearchParams(params)
@@ -100,8 +106,13 @@ export default function TpPeople() {
               className="tp-field"
               type="search"
               placeholder="Name or email"
-              defaultValue={get('q')}
-              onChange={(e) => setParam({ q: e.target.value.trim() })}
+              value={searchText}
+              onChange={(e) => {
+                const next = e.target.value
+                setSearchText(next)
+                clearTimeout(searchTimer.current)
+                searchTimer.current = setTimeout(() => setParam({ q: next.trim() }), 300)
+              }}
             />
           </label>
           <label className="flex flex-col gap-1.5">

@@ -31,7 +31,7 @@ Roles reuse the `users.role` column, mapped as:
 | `admin` | admin |
 | `moderator` | manager |
 | `user` | member |
-| `spectator` | spectator |
+| `spectator` | refused (see below) |
 
 | Data | admin | manager (own tree) | member (self) | spectator |
 |---|---|---|---|---|
@@ -540,3 +540,65 @@ Also confirmed directly:
 The migration runner itself could not be exercised locally: `@vercel/postgres`
 talks to Neon over HTTPS and cannot open a plain Postgres connection. The SQL
 it applies, and the order it applies it in, are what was verified.
+
+## Revalidation pass
+
+A full read-back of the finished code, with the driver's behaviour and the
+changed SQL checked against a real Postgres. Eleven defects found and fixed.
+
+### Correctness and access
+
+1. **Every self-read was audited as reading someone else's record.** Postgres
+   returns `bigint` as a *string*, so `ctx.self.id !== personId` compared `'7'`
+   with `7` and was always true. Two call sites, now `Number()`-normalised.
+   Verified against `pg-types`: `int8` and `numeric` parse to strings, `date`
+   parses to a string (so the `String(x).slice(0, 10)` calls elsewhere are
+   correct), and `timestamptz` to a `Date`. Every count in the codebase is cast
+   `::int` in SQL, which is why nothing else was affected.
+2. **An unassigned task was readable by anyone.** `GET /tasks/:id` only checked
+   access when the task had an owner, while `listTasks` filters ownerless tasks
+   out of a scoped list — so a member could open by id what the list hid. Now
+   restricted to admin and manager.
+3. **Config was stored without type checking.** An admin could save
+   `targets.on_time_pct` as text; the failure then surfaced on a dashboard, far
+   from the form that caused it. `validateConfigValue` checks each field
+   against the shape of its default, coerces numeric strings, fills omitted
+   fields from the defaults and rejects unknown keys.
+4. **Optimistic locking was opt-in.** Omitting `updatedAt` skipped the check
+   entirely, so the protection applied only to callers who asked for it. It is
+   now required on both person and task updates.
+5. **An empty scope returned zeros.** A login not linked to any person read as
+   "0% on-time, 0 unplanned absences" — a clean record rather than an empty
+   one, which is the precise failure this project set out to avoid. Metrics now
+   return nulls with a `scopeEmpty` flag, and the overview explains that the
+   login is not linked rather than drawing an empty dashboard.
+
+### Atomicity
+
+6. **Multi-row writes were not atomic.** This driver is autocommit per
+   statement over HTTP, so there was no transaction around the loops in
+   `logAbsence`, `decideLeave` and `importPeople`. A failure on day three of
+   five left two days written; a failure on row 40 of 60 left 39 people
+   imported — the exact half-imported team the dry run exists to prevent, and
+   the approval was already marked approved. All three are now single
+   `insert … select from unnest(…)` statements. Proven against real Postgres:
+   a batch containing one constraint-violating row writes nothing.
+
+### Performance
+
+7. Opening one profile ran the **whole team's** attention report and skill
+   heatmap to pick one row out of each, and the heatmap was awaited outside the
+   batch. Both now take a `personId` and run inside the one `Promise.all`.
+8. The overview pulled every certification to count the expiring ones;
+   `expiringCertCount` counts them in SQL.
+9. `listCerts` ran an `UPDATE` on every `GET` — a write on a read path, firing
+   even for the overview's count. Expiry is now derived when the row is read;
+   the stored status is left alone.
+10. The people search issued a request per keystroke. It is debounced to 300ms,
+    and the input is controlled so a back-navigation restores it.
+
+### Consistency
+
+11. The single-point-of-failure heading hardcoded "L3" while the calculation
+    read the threshold from `INDEPENDENT_LEVEL`. The API now sends the value
+    and the screen labels it from the same source.
