@@ -1,0 +1,74 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import TpLayout from '../../components/tp/TpLayout'
+import StatusPill from '../../components/tp/StatusPill'
+import { TpLoading, TpError, TpNotBuiltYet } from '../../components/tp/States'
+import { tpGet } from '../../lib/tpApi'
+import { years, shortDate, initialsOf, DASH } from '../../lib/tpFormat'
+
+export default function TpEmployee() {
+  const { id } = useParams()
+  const [person, setPerson] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const load = () => {
+    setLoading(true)
+    setError('')
+    tpGet(`/people/${id}`).then(r => {
+      if (r.success) setPerson(r.person)
+      else setError(r.error)
+      setLoading(false)
+    })
+  }
+  useEffect(load, [id])
+
+  if (loading) return <TpLayout title="Profile"><TpLoading label="Loading profile" /></TpLayout>
+  if (error) return <TpLayout title="Profile"><TpError error={error} onRetry={load} /></TpLayout>
+
+  const facts = [
+    ['Total experience', years(person.totalExpYears)],
+    ['Relevant experience', years(person.relevantExpYears)],
+    ['Project', person.projectName || DASH],
+    ['Client', person.client || DASH],
+    ['Working from', person.workLocation],
+    ['Allocation', `${person.allocationPct}%`],
+    ['Manager', person.managerName || DASH],
+    ['Joined', shortDate(person.dateJoinedOrg)],
+  ]
+
+  return (
+    <TpLayout title={person.name}>
+      <Link to="/tp/people" className="text-sm hover:opacity-70 px-2">← All people</Link>
+
+      <section className="tp-panel flex flex-col lg:flex-row lg:items-center gap-8">
+        <div aria-hidden="true" className="w-24 h-24 rounded-full bg-white grid place-items-center text-4xl shrink-0">
+          {person.initials || initialsOf(person.name)}
+        </div>
+        <div className="flex flex-col gap-2 grow">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="tp-h1">{person.name}</h1>
+            <StatusPill status={person.statusOverride} title={person.statusOverrideReason} />
+          </div>
+          <p className="m-0 text-base" style={{ color: 'var(--tp-muted)' }}>
+            {person.designation}{person.projectName ? ` · ${person.projectName}` : ''}
+          </p>
+        </div>
+        <dl className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 lg:w-[620px] m-0">
+          {facts.map(([label, value]) => (
+            <div key={label} className="rounded-[22px] bg-white/60 px-4 py-3 flex flex-col gap-1">
+              <dt className="tp-label">{label}</dt>
+              <dd className="m-0 text-base">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <TpNotBuiltYet
+        screen="Tasks, attendance, skills and achievements for this person"
+        phase="3 to 6"
+        needs="Each tab needs its own capture flow before it can show anything: entries first, charts second."
+      />
+    </TpLayout>
+  )
+}
