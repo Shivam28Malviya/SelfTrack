@@ -17,6 +17,8 @@ import TpPeople from './pages/tp/People'
 import TpEmployee from './pages/tp/Employee'
 import TpPersonForm from './pages/tp/PersonForm'
 import TpImport from './pages/tp/Import'
+import TpEntries from './pages/tp/Entries'
+import TpAudit from './pages/tp/Audit'
 import TpDelivery from './pages/tp/Delivery'
 import TpAttendance from './pages/tp/Attendance'
 import TpSkills from './pages/tp/Skills'
@@ -86,6 +88,10 @@ export default function App() {
           <TpGuard roles={['admin', 'manager', 'member']} what="attendance"><TpAttendance /></TpGuard>
         } />
         <Route path="skills" element={<TpSkills />} />
+        <Route path="entries" element={<TpEntries />} />
+        <Route path="audit" element={
+          <TpGuard roles={['admin', 'manager']} what="the audit trail"><TpAudit /></TpGuard>
+        } />
         <Route path="entry" element={
           <TpGuard roles={['admin', 'manager']} what="the quick log"><TpEntry /></TpGuard>
         } />

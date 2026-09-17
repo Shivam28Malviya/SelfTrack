@@ -12,6 +12,8 @@ import {
   assertManagerInScope, allocationWarning, DESIGNATIONS, LOCATIONS, REGIONS,
 } from '../../lib/tp/personWrite.js'
 import { importPeople, IMPORT_TEMPLATE_HEADERS } from '../../lib/tp/personImport.js'
+import { HANDLERS, ENTRY_TYPES } from '../../lib/tp/entries.js'
+import { listEntries, updateEntry, deleteEntry, listAudit, FEED_KINDS } from '../../lib/tp/entryFeed.js'
 import { sql } from '../../lib/db.js'
 
 export default async function handler(req, res) {
@@ -217,6 +219,44 @@ export default async function handler(req, res) {
         regions: REGIONS,
         managers: managers.map(m => ({ id: Number(m.id), name: m.name })),
       })
+    }
+
+    // ---- quick log ----
+    const entryMatch = route.match(/^\/entries\/([a-z]+)$/)
+    if (entryMatch && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      const type = oneOf(entryMatch[1], 'Entry type', ENTRY_TYPES)
+      const result = await HANDLERS[type](ctx, req.body || {})
+      // A same-day clash is not an error: the caller is asked to confirm an
+      // overwrite, and the existing values are returned so they can see what
+      // they would replace.
+      if (result?.conflict) return res.status(409).json({ success: false, ...result, error: result.message })
+      return res.status(200).json({ success: true, ...result })
+    }
+
+    if (route === '/entries' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, ...(await listEntries(ctx, query)) })
+    }
+
+    const entryItemMatch = route.match(/^\/entries\/([a-z]+)\/(\d+)$/)
+    if (entryItemMatch && (method === 'PUT' || method === 'DELETE')) {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      const [, kind, entryId] = entryItemMatch
+      oneOf(kind, 'Kind', FEED_KINDS)
+      const result = method === 'PUT'
+        ? await updateEntry(ctx, kind, entryId, req.body || {})
+        : await deleteEntry(ctx, kind, entryId)
+      return res.status(200).json({ success: true, ...result })
+    }
+
+    // ---- audit trail ----
+    if (route === '/audit' && method === 'GET') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      return res.status(200).json({ success: true, ...(await listAudit(ctx, query)) })
     }
 
     return res.status(404).json({ success: false, error: 'Not found.' })

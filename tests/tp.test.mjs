@@ -193,3 +193,23 @@ test('a person cannot be made their own manager', async () => {
   await assert.rejects(() => assertNoManagerCycle(7, 7), (e) => e.status === 400)
   await assertNoManagerCycle(null, null)   // nothing to check, must not throw
 })
+
+// ---- phase 3: capture helpers ----
+import { monthStart, nextMonthStart } from '../lib/tp/dates.js'
+
+test('month boundaries wrap the year correctly', () => {
+  assert.equal(monthStart('2026-09-17'), '2026-09-01')
+  assert.equal(nextMonthStart('2026-09-17'), '2026-10-01')
+  assert.equal(nextMonthStart('2026-12-31'), '2027-01-01')
+  assert.equal(nextMonthStart('2026-01-01'), '2026-02-01')
+})
+
+test('minutes late are derived, not typed, and respect the grace period', () => {
+  // Mirrors the server computation in lib/tp/entries.js logLate.
+  const mins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+  const late = (login, shift, grace) => Math.max(0, mins(login) - mins(shift) - grace)
+  assert.equal(late('10:20', '09:30', 10), 40)
+  assert.equal(late('09:35', '09:30', 10), 0)   // inside grace: not late
+  assert.equal(late('09:41', '09:30', 10), 1)
+  assert.equal(late('08:00', '09:30', 10), 0)   // early, never negative
+})

@@ -210,9 +210,11 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 
 ## 8. Known gaps still open
 
-1. **No hours source.** Overtime and utilization stay hidden until a timesheet
-   feed exists. Decide: manual entry screen, or import from the existing
-   timesheet system.
+1. **Hours: partly resolved.** Overtime now has a manual entry in Quick log,
+   so the overtime metric is computable. Because entry is manual it is
+   incomplete by nature, so the team figure is always reported together with
+   how many people have any overtime recorded at all. Utilization still needs
+   *billable* hours, which manual overtime does not provide, and stays hidden.
 2. **Client score cadence.** Monthly survey, per-task rating, or ad hoc manager
    entry — affects whether the 6-month trend line has enough points.
 3. **Who triages UAT defects** and therefore sets `leaked_to_uat`.
@@ -229,8 +231,8 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 | 0 | Definitions, metric formulas, attention rule, permission matrix | done — this document |
 | 1 | Migrations, roles and row scoping, config, API split, app shell, people list | done |
 | 2 | Add and edit people, import, manager tree editing | done |
-| 3 | Quick log for all five entry types, entry list, audit viewer | next |
-| 4 | Tasks and delivery dashboard, metric endpoints and snapshots | |
+| 3 | Quick log, entry list, audit viewer | done |
+| 4 | Tasks and delivery dashboard, metric endpoints and snapshots | next |
 | 5 | Attendance calendar, holidays, leave, late logins | |
 | 6 | Skill catalogue, self and manager ratings, heatmap, certificates | |
 | 7 | Attention engine, overview KPIs, notifications, exports | |
@@ -293,3 +295,37 @@ the statement that links one.
   is written.
 - Deleting a person is never offered. Deactivation keeps their history, which
   the team metrics and the audit trail both still need.
+
+### Phase 3 delivered
+
+Capture, and the ability to correct it.
+
+- `lib/tp/entries.js` — one handler per entry type, each enforcing the rules
+  from section 5 and 6:
+  - **Absence** expands a multi-day range to one row per *working* day, so a
+    Friday-to-Tuesday leave is three days and not five. A single non-working
+    date is refused unless explicitly forced, rather than silently writing
+    nothing. A clash with an existing day returns 409 with the current values,
+    and overwriting keeps the old value in the audit trail.
+  - **Late login** derives `minutes_late` from the login time and the region's
+    shift start, plus a configurable grace period, and shows it read-only. The
+    design let both the time and the minutes be typed, which allows a 10:20
+    login recorded as five minutes late. Logging a late arrival on a recorded
+    leave day is refused. Over four hours late requires a note.
+  - **Feedback** enforces the 1-5 integer scale, no future dates, nothing older
+    than 12 months, a project for client feedback, and one client feedback per
+    task per month.
+  - **Achievement** and **Overtime**, the latter capped at 16 hours per person
+    per day across entries.
+- `lib/tp/entryFeed.js` — one reverse-chronological feed across the entry
+  tables with server-side paging, plus edit and delete. Only value and note
+  fields are editable: moving an entry to another person would rewrite two
+  people's history, so that is a delete and a re-entry, and the trail shows
+  both.
+- `GET /audit` and the audit screen. Quick log promises entries are audited;
+  without somewhere to read the trail, that promise is unverifiable. Reads of
+  another person's record appear as `read.*` actions.
+- `workday.grace_minutes` (default 10) added to config. Without it a 09:31
+  arrival against a 09:30 shift becomes a tracked infraction.
+- Task updates are **not** an entry type. A task status change belongs with the
+  task and its event history, and lands in phase 4.

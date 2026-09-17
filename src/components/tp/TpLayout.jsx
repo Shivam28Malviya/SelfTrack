@@ -7,6 +7,7 @@ const NAV = [
   { to: '/tp', label: 'Overview', key: 'overview', end: true },
   { to: '/tp/people', label: 'People', key: 'people' },
   { to: '/tp/delivery', label: 'Delivery', key: 'delivery' },
+  { to: '/tp/entries', label: 'Entries', key: 'entries' },
   { to: '/tp/attendance', label: 'Attendance', key: 'attendance' },
   { to: '/tp/skills', label: 'Skills', key: 'skills' },
   { to: '/tp/settings', label: 'Settings', key: 'settings' },

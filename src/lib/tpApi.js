@@ -22,6 +22,7 @@ export const canOpen = {
   overview: () => true,
   people: () => true,
   delivery: () => true,
+  entries: () => true,
   attendance: (role) => role === 'admin' || role === 'manager' || role === 'member',
   skills: () => true,
   entry: (role) => role === 'admin' || role === 'manager',
