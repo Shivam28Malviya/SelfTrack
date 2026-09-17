@@ -37,10 +37,25 @@ against a local Postgres.
 
 ## Deploying
 
-Vercel builds `master` on push. Production deploys occasionally fail with
-`Resource provisioning failed` and no build log, which is a Vercel-side problem
-rather than a code one: the build never starts. Redeploying the same commit from
-the Vercel dashboard has been the fix each time.
+Vercel builds `master` on push.
+
+### When a build fails with `Resource provisioning failed`
+
+The symptom is a deployment that goes to ERROR in under a second with **no build
+log at all** — the build never starts, so it is not the code.
+
+The cause has each time been the **linked Supabase project being paused**. Free
+projects pause after inactivity, and Vercel cannot provision the integration's
+resources while it is down, so every deployment fails before the build begins.
+It affects production and preview alike.
+
+To fix it: open the Supabase dashboard, resume the project, wait for it to reach
+`ACTIVE_HEALTHY` (a minute or two — it passes through `COMING_UP` and
+`RESTORING`), then redeploy the failed commit from the Vercel dashboard.
+
+This is worth knowing because the failure looks like a broken build and is not
+one. The repository's history contains three failed deploys followed by a commit
+titled "redeploy now that Supabase is resumed", which is the same story.
 
 ### After the first deploy carrying TeamPulse
 
