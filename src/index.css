@@ -142,3 +142,107 @@ button, a, input, select, textarea {
   -webkit-text-fill-color: transparent;
   animation: shimmer 3s linear infinite;
 }
+
+/* ---- TeamPulse module ----
+   Scoped under .tp so the TeamPulse design tokens never leak into the warm
+   editorial theme the rest of SelfTrack uses. Tokens come from the design
+   export (navy / tint / paper). The greys are a step darker than the export's:
+   its #5E6470 does pass AA on the tint (4.73:1), but the margin is thin for
+   12px uppercase with wide letter-spacing, so these carry more. The one real
+   failure was the palest heatmap label at 4.43:1, fixed in --tp-faint. */
+.tp {
+  --tp-paper: #f0f0f0;
+  --tp-tint: #dfe6ef;
+  --tp-surface: #ffffff;
+  --tp-navy: #1e325a;
+  --tp-ink: #1e325a;
+  --tp-heading: #3f4654;
+  --tp-muted: #565d6b;      /* a step darker than the export's #5E6470 */
+  --tp-faint: #5f6672;   /* #6b7280 measured 4.43:1 on the palest cell: under AA */
+  --tp-line: #e4e7ec;
+  --tp-track: #f0f2f5;
+
+  --tp-ok-bg: #e3f1e8;   --tp-ok-fg: #17542f;
+  --tp-warn-bg: #fff4e5; --tp-warn-fg: #6b4000;
+  --tp-bad-bg: #fde8e6;  --tp-bad-fg: #8f2117;
+  --tp-info-bg: #eef1f5; --tp-info-fg: #3f4654;
+
+  --tp-scale-1: #e3e8ef;
+  --tp-scale-2: #bfcbdd;
+  --tp-scale-3: #8fa3c2;
+  --tp-scale-4: #1e325a;
+
+  background: var(--tp-paper);
+  color: var(--tp-ink);
+  min-height: 100vh;
+}
+
+@layer components {
+  .tp-card {
+    @apply bg-white rounded-[32px] p-6 md:p-8;
+  }
+  .tp-panel {
+    background: var(--tp-tint);
+    @apply rounded-[32px] md:rounded-[48px] p-6 md:p-10;
+  }
+  .tp-h1 {
+    color: var(--tp-heading);
+    @apply text-3xl md:text-5xl font-normal tracking-[-0.03em] m-0;
+  }
+  .tp-label {
+    color: var(--tp-muted);
+    @apply text-[12px] tracking-[0.08em] uppercase;
+  }
+  .tp-btn {
+    background: var(--tp-navy);
+    /* 44px minimum: these are the primary actions and they are used on phones. */
+    @apply inline-flex items-center justify-center gap-2 text-white rounded-full px-5 py-2.5 text-sm
+           min-h-[44px] hover:opacity-90 active:scale-[0.98];
+  }
+  .tp-btn-ghost {
+    border-color: #dfe3ea;
+    @apply inline-flex items-center justify-center gap-2 bg-white rounded-full px-5 py-2.5 text-sm border
+           min-h-[44px] hover:border-[#1e325a] active:scale-[0.98];
+  }
+  .tp-field {
+    border-color: #dfe3ea;
+    @apply h-12 w-full rounded-2xl border bg-white px-4 text-sm text-[#1e325a]
+           focus:outline-none focus:ring-2 focus:ring-[#1e325a]/30;
+  }
+  .tp-pill {
+    @apply inline-flex items-center gap-1.5 text-xs rounded-full px-3 py-1 whitespace-nowrap;
+  }
+}
+
+/* Keyboard focus must stay visible on the pale tint panels. */
+.tp a:focus-visible,
+.tp button:focus-visible,
+.tp [tabindex]:focus-visible {
+  outline: 2px solid var(--tp-navy);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Categorical chart hues. The navy ink token is too dark and too low-chroma to
+   serve as a categorical slot (it fails the lightness-band and chroma checks),
+   so charts with more than one series draw from these three, assigned in a
+   fixed order and never cycled. Validated for colour-vision deficiency
+   separation against the white chart surface. */
+.tp {
+  --tp-cat-1: #4577c0;
+  --tp-cat-2: #c9791a;
+  --tp-cat-3: #2f8f6b;
+  --tp-grid: #e8ebf0;
+  --tp-axis: #b9c3d3;
+}
+
+/* A wide data table scrolls horizontally, which works but hides columns. Where
+   a screen offers a card list for small viewports, the table is hidden instead
+   of scrolled, so nothing important sits off-screen on a phone. */
+@media (max-width: 640px) {
+  .tp-table-wide { display: none; }
+  .tp-cards-narrow { display: flex; }
+}
+@media (min-width: 641px) {
+  .tp-cards-narrow { display: none; }
+}
