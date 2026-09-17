@@ -504,3 +504,39 @@ charts. Every other screen is responsive rather than duplicated.
   completed tasks).
 - Closed-month metrics are cached in `tp_metric_snapshot`; the current month is
   never cached, because it is still moving.
+
+### Verification against real Postgres
+
+The schema and all four migrations were applied to a throwaway Postgres 16
+instance, run twice to confirm they are idempotent, and the constraints were
+exercised with deliberately invalid data. Sixteen constraint cases behaved as
+intended, among them: relevant experience above total, self-management, an
+allocation over 100, `done` with no completion time, two attendance rows for
+one person on one day, a feedback score of 7, an expiry before its completion
+date, and a leave range that ends before it starts.
+
+That run found a real defect. Migration 002 began with
+`drop index if exists` on the index backing a unique constraint, which
+Postgres refuses — the constraint depends on it. On Neon that would have
+aborted the migration. The constraint is now dropped first, and the index drop
+is kept after it for the case where a bare unique index exists without a
+constraint.
+
+Also confirmed directly:
+
+- the `$1::bigint[] is null or col = any($1)` scoping pattern behaves with the
+  array both null and populated, across every metric query
+- the four-table entry-feed union orders and pages correctly
+- both snapshot upserts update one row rather than inserting, which is the bug
+  migration 002 exists to fix
+- the recursive manager-tree query terminates at depth 10 against a real
+  A → B → A cycle instead of running away
+- the attendance upsert clears the login time and minutes when an absence
+  replaces a present day
+- a manager re-rating a skill updates their own row and leaves the person's
+  self rating untouched
+- the late-login partial index is chosen by the planner for its query
+
+The migration runner itself could not be exercised locally: `@vercel/postgres`
+talks to Neon over HTTPS and cannot open a plain Postgres connection. The SQL
+it applies, and the order it applies it in, are what was verified.
