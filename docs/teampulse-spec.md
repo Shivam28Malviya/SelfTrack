@@ -233,8 +233,8 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 | 2 | Add and edit people, import, manager tree editing | done |
 | 3 | Quick log, entry list, audit viewer | done |
 | 4 | Tasks and delivery dashboard, metric endpoints and snapshots | done |
-| 5 | Attendance calendar, holidays, leave, late logins | next |
-| 6 | Skill catalogue, self and manager ratings, heatmap, certificates | |
+| 5 | Attendance calendar, holidays, leave, late logins | done |
+| 6 | Skill catalogue, self and manager ratings, heatmap, certificates | next |
 | 7 | Attention engine, overview KPIs, notifications, exports | |
 | 8 | Accessibility audit, responsive down to tablet, mobile, performance | |
 
@@ -367,3 +367,31 @@ Capture, and the ability to correct it.
 - Chart hues are three validated categorical slots (`--tp-cat-1..3`), assigned
   in fixed order and never cycled. The navy ink token is too dark and too
   low-chroma to serve as one, so it stays an ink colour.
+
+### Phase 5 delivered
+
+- `lib/tp/attendance.js` — the month grid is built from the real calendar and
+  the holiday table per person's region. The export derived weekends from the
+  day number and assumed 30 days, which is wrong for every month that does not
+  start on the right weekday and for February in particular.
+- **An unrecorded past working day is drawn hollow, not present.** Nobody said
+  the person was there, so the gap is visible instead of flattering. A late
+  login is marked with an outline as well as a fill.
+- The calendar scrolls horizontally with a sticky name column: thirty-one
+  legible cells plus a name do not fit a laptop viewport, and squashing them
+  was the other option.
+- Migration 003 adds `tp_leave_request`. Phase 3 could only record an absence
+  after the fact; a person can now ask and a manager decides. **Approval is
+  what writes attendance**, one row per working day, and adds to the used-leave
+  balance. Nobody can decide their own request. A request over the remaining
+  balance warns the approver rather than blocking: exceptions are a manager's
+  call.
+- Holiday calendar endpoints (admin), so `workingDays` has real data to read.
+- Late logins are shown against the previous period, with the direction as a
+  word and a glyph rather than only a colour.
+- Absence bars are a share of the largest total in the set, so a long absence
+  cannot overflow its track — the export's `days * 8 + '%'` broke at 13 days.
+- "No leave taken" is reported as a fact with the last date, not as a
+  diagnosis: it may mean a heavy project or a holiday nobody logged.
+- Spectators are refused attendance outright; every other role is still
+  filtered per row, and a manager's read is audited.

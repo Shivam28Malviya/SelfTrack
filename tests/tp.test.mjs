@@ -268,3 +268,19 @@ test('periods resolve to whole months and an explicit range wins', () => {
   const explicit = resolvePeriod({ from: '2026-01-01', to: '2026-02-01' })
   assert.deepEqual(explicit, { from: '2026-01-01', to: '2026-02-01' })
 })
+
+// ---- phase 5: calendar cells and leave ----
+test('a month grid covers the real number of days, including February', () => {
+  assert.equal(eachDate('2026-02-01', '2026-03-01').length, 28)
+  assert.equal(eachDate('2024-02-01', '2024-03-01').length, 29)
+  assert.equal(eachDate('2026-01-01', '2026-02-01').length, 31)
+  assert.equal(eachDate('2026-04-01', '2026-05-01').length, 30)
+})
+
+test('weekends are derived from the real weekday, not the day number', () => {
+  // 1 Feb 2026 is a Sunday; the export computed (n + 1) % 7, which only lines
+  // up for one particular month.
+  const weekend = eachDate('2026-02-01', '2026-03-01').filter(d => [0, 6].includes(dayOfWeek(d)))
+  assert.equal(weekend.length, 8)
+  assert.equal(weekend[0], '2026-02-01')
+})

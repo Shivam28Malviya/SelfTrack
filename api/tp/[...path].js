@@ -18,6 +18,11 @@ import { createTask, updateTask, getTask, listTasks, taskHistory, TASK_STATUSES 
 import {
   teamMetrics, personMetrics, monthlyTrend, onTimeByPerson, taskAging, effortScatter, resolvePeriod,
 } from '../../lib/tp/metrics.js'
+import {
+  monthGrid, lateLoginTable, absenceByType, unusedLeave,
+  listHolidays, addHoliday, removeHoliday,
+  requestLeave, listLeave, decideLeave, leaveBalance, setLeaveEntitlement,
+} from '../../lib/tp/attendance.js'
 import { sql } from '../../lib/db.js'
 
 export default async function handler(req, res) {
@@ -321,6 +326,73 @@ export default async function handler(req, res) {
       const personId = parseId(personMetricsMatch[1], 'Person')
       assertCanSeePerson(ctx, personId)
       return res.status(200).json({ success: true, metrics: await personMetrics(ctx, personId, query) })
+    }
+
+    // ---- attendance ----
+    // Attendance is the most sensitive data here, so a spectator is refused
+    // outright and every other role is still filtered per row.
+    if (route === '/attendance' && method === 'GET') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager', 'member')
+      const period = resolvePeriod(query)
+      const [grid, metrics, late, absence, unused] = await Promise.all([
+        monthGrid(ctx, query),
+        teamMetrics(ctx, query),
+        lateLoginTable(ctx, period),
+        absenceByType(ctx, resolvePeriod({ period: 'quarter', to: query.to })),
+        unusedLeave(ctx),
+      ])
+      if (ctx.role !== 'member') await audit({ actor: ctx.user, action: 'read.attendance', entity: 'attendance' })
+      return res.status(200).json({ success: true, grid, metrics, late, absence, unused, period })
+    }
+
+    // ---- holidays ----
+    if (route === '/holidays' && method === 'GET') {
+      await requireTp(req)
+      return res.status(200).json({ success: true, holidays: await listHolidays(query) })
+    }
+
+    if (route === '/holidays' && (method === 'POST' || method === 'DELETE')) {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin')
+      const result = method === 'POST'
+        ? await addHoliday(ctx, req.body || {})
+        : await removeHoliday(ctx, req.body || {})
+      return res.status(200).json({ success: true, ...result, holidays: await listHolidays({ year: String(result.date).slice(0, 4) }) })
+    }
+
+    // ---- leave ----
+    if (route === '/leave' && method === 'GET') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager', 'member')
+      return res.status(200).json({ success: true, ...(await listLeave(ctx, query)) })
+    }
+
+    if (route === '/leave' && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager', 'member')
+      return res.status(200).json({ success: true, ...(await requestLeave(ctx, req.body || {})) })
+    }
+
+    const leaveDecideMatch = route.match(/^\/leave\/(\d+)\/decide$/)
+    if (leaveDecideMatch && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      return res.status(200).json({ success: true, ...(await decideLeave(ctx, leaveDecideMatch[1], req.body || {})) })
+    }
+
+    const leaveBalanceMatch = route.match(/^\/people\/(\d+)\/leave$/)
+    if (leaveBalanceMatch && method === 'GET') {
+      const ctx = await requireTp(req)
+      const personId = parseId(leaveBalanceMatch[1], 'Person')
+      assertCanSeePerson(ctx, personId)
+      return res.status(200).json({ success: true, balance: await leaveBalance(personId) })
+    }
+
+    if (leaveBalanceMatch && method === 'PUT') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      return res.status(200).json({ success: true, balance: await setLeaveEntitlement(ctx, leaveBalanceMatch[1], req.body || {}) })
     }
 
     return res.status(404).json({ success: false, error: 'Not found.' })

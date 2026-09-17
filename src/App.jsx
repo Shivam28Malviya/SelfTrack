@@ -21,6 +21,7 @@ import TpEntries from './pages/tp/Entries'
 import TpAudit from './pages/tp/Audit'
 import TpTask from './pages/tp/Task'
 import TpTaskForm from './pages/tp/TaskForm'
+import TpLeaveForm from './pages/tp/LeaveForm'
 import TpDelivery from './pages/tp/Delivery'
 import TpAttendance from './pages/tp/Attendance'
 import TpSkills from './pages/tp/Skills'
@@ -88,6 +89,9 @@ export default function App() {
         <Route path="delivery" element={<TpDelivery />} />
         <Route path="attendance" element={
           <TpGuard roles={['admin', 'manager', 'member']} what="attendance"><TpAttendance /></TpGuard>
+        } />
+        <Route path="leave/new" element={
+          <TpGuard roles={['admin', 'manager', 'member']} what="leave requests"><TpLeaveForm /></TpGuard>
         } />
         <Route path="skills" element={<TpSkills />} />
         <Route path="tasks/new" element={
