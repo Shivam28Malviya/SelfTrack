@@ -236,7 +236,7 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 | 5 | Attendance calendar, holidays, leave, late logins | done |
 | 6 | Skill catalogue, self and manager ratings, heatmap, certificates | done |
 | 7 | Attention engine, overview KPIs, notifications, exports | done |
-| 8 | Accessibility audit, responsive down to tablet, mobile, performance | next |
+| 8 | Accessibility audit, responsive down to tablet, mobile, performance | done |
 
 ### Phase 1 delivered
 
@@ -253,7 +253,9 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 - `lib/tp/audit.js`, `lib/tp/config.js`, `lib/tp/people.js`.
 - `api/tp/[...path].js` — health, `me`, config read and write, projects, people
   list and person read. Reading someone else's record writes an audit row.
-- Front end: `.tp` token scope, layout shell, loading, empty, error and
+- Front end: `.tp` token scope (greys a step darker than the export's for
+  margin at small sizes, not because they failed), layout shell, loading,
+  empty, error and
   no-access states, status pills that carry a glyph as well as a colour, the
   people list with server-side filtering, sorting, paging and URL-synced
   filters, and honest em dashes wherever a metric has no data yet.
@@ -452,3 +454,53 @@ Capture, and the ability to correct it.
   the attention thresholds, shift start and grace per region, retention, the
   skill catalogue and the holiday calendar. Each change is audited, because
   changing a threshold changes who gets flagged.
+
+### Phase 8 delivered
+
+**Accessibility.** Every token pair that appears together is measured, and the
+measurement is a test (`tests/tp.test.mjs`) so a future palette change cannot
+quietly break it. One real failure was found and fixed: the palest heatmap
+label at 4.43:1, under AA. The export's own `#5E6470` *passes* on the tint at
+4.73:1 — the greys here are still a step darker, for margin at 12px with wide
+letter-spacing, and the test records that it passed so nobody "fixes" it back
+believing it was broken.
+
+Also in this pass:
+
+- status is never colour alone anywhere: every pill carries a glyph and its
+  word, every chart has a "show values" table, and trend direction is stated
+  in words
+- a skip link, a visible focus ring that survives the pale tint panels, 44px
+  minimum tap targets on the primary and secondary buttons, and `min-h`
+  targets on the nav links
+- the profile tabs are a labelled button group with `aria-pressed` rather than
+  a half-built ARIA tab pattern: the real pattern needs arrow-key navigation
+  and tabpanels, and claiming the role without them is worse than not claiming
+  it
+- tables carry a `<caption class="sr-only">` and `scope` on every header
+
+**Responsiveness.** Everything is fluid from 360px. The two grids that cannot
+shrink — the month calendar and the skills heatmap — scroll horizontally with a
+sticky name column rather than squashing. The delivery table, which needs
+900px, is replaced by a card list under 640px so status and effort do not sit
+off-screen. The nav collapses behind a disclosure on phones instead of wrapping
+to three lines above every screen.
+
+`/tp/today` is a phone-first overview, kept as its own route rather than a
+media query, because the priorities genuinely differ: on a phone a manager
+wants who needs attention and a way to log something, not six KPIs and three
+charts. Every other screen is responsive rather than duplicated.
+
+**Performance.**
+
+- TeamPulse is code-split behind `React.lazy`. It is a second application
+  sharing the shell, and loading it eagerly made every SelfTrack page download
+  it; the main bundle is back to roughly its pre-TeamPulse size and each
+  TeamPulse screen is 3–13 kB.
+- The profile draws from a single `/people/:id/profile` call rather than eight
+  requests that each re-derive the same access check.
+- Migration 004 adds the indexes the later phases need, including partial
+  indexes for the two queries that always filter on a predicate (late logins,
+  completed tasks).
+- Closed-month metrics are cached in `tp_metric_snapshot`; the current month is
+  never cached, because it is still moving.

@@ -1,4 +1,5 @@
-import { NavLink, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Link, useLocation } from 'react-router-dom'
 import { useTp } from '../../context/TpContext'
 import { canOpen } from '../../lib/tpApi'
 import { TpLoading, TpError } from './States'
@@ -21,6 +22,11 @@ const NAV = [
  */
 export default function TpLayout({ title, children }) {
   const { loading, error, role, person, reload } = useTp()
+  const location = useLocation()
+  // Seven nav items do not fit a phone. Below `sm` they collapse behind a
+  // disclosure rather than wrapping into three lines above every screen.
+  const [menuOpen, setMenuOpen] = useState(false)
+  useEffect(() => { setMenuOpen(false) }, [location.pathname])
 
   const items = NAV.filter(n => (canOpen[n.key] ? canOpen[n.key](role) : true))
 
@@ -34,14 +40,30 @@ export default function TpLayout({ title, children }) {
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-3 px-2 md:px-5 py-2" aria-label="TeamPulse">
           <Link to="/tp" className="text-[22px] tracking-[-0.04em] mr-auto">TeamPulse</Link>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm order-3 md:order-none w-full md:w-auto">
+          <button
+            type="button"
+            className="tp-btn-ghost sm:hidden order-2"
+            aria-expanded={menuOpen}
+            aria-controls="tp-nav-links"
+            onClick={() => setMenuOpen(v => !v)}
+          >
+            {menuOpen ? 'Close' : 'Menu'}
+          </button>
+
+          <div
+            id="tp-nav-links"
+            className={`${menuOpen ? 'flex' : 'hidden'} sm:flex flex-col sm:flex-row flex-wrap
+                        items-start sm:items-center gap-x-6 gap-y-3 text-sm
+                        order-4 sm:order-none w-full sm:w-auto`}
+          >
             {items.map(n => (
               <NavLink
                 key={n.to}
                 to={n.to}
                 end={n.end}
                 className={({ isActive }) =>
-                  'pb-0.5 ' + (isActive ? 'border-b border-[color:var(--tp-navy)]' : 'hover:opacity-70')
+                  'pb-0.5 min-h-[44px] sm:min-h-0 flex items-center ' +
+                  (isActive ? 'border-b border-[color:var(--tp-navy)]' : 'hover:opacity-70')
                 }
               >
                 {n.label}
@@ -49,11 +71,13 @@ export default function TpLayout({ title, children }) {
             ))}
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-3 ml-auto order-3 sm:order-none">
             {(role === 'admin' || role === 'manager') && (
               <Link to="/tp/entry" className="tp-btn">Quick log</Link>
             )}
-            <Link to="/" className="text-sm hover:opacity-70" title="Back to SelfTrack">SelfTrack</Link>
+            <Link to="/" className="text-sm hover:opacity-70 hidden sm:inline" title="Back to SelfTrack">
+              SelfTrack
+            </Link>
           </div>
         </nav>
 

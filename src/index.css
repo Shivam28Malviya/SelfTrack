@@ -146,8 +146,10 @@ button, a, input, select, textarea {
 /* ---- TeamPulse module ----
    Scoped under .tp so the TeamPulse design tokens never leak into the warm
    editorial theme the rest of SelfTrack uses. Tokens come from the design
-   export (navy / tint / paper) with the low-contrast greys darkened to pass
-   WCAG AA at the small sizes the screens use them at. */
+   export (navy / tint / paper). The greys are a step darker than the export's:
+   its #5E6470 does pass AA on the tint (4.73:1), but the margin is thin for
+   12px uppercase with wide letter-spacing, so these carry more. The one real
+   failure was the palest heatmap label at 4.43:1, fixed in --tp-faint. */
 .tp {
   --tp-paper: #f0f0f0;
   --tp-tint: #dfe6ef;
@@ -155,8 +157,8 @@ button, a, input, select, textarea {
   --tp-navy: #1e325a;
   --tp-ink: #1e325a;
   --tp-heading: #3f4654;
-  --tp-muted: #565d6b;      /* export used #5E6470: too light on tint at 12px */
-  --tp-faint: #6b7280;
+  --tp-muted: #565d6b;      /* a step darker than the export's #5E6470 */
+  --tp-faint: #5f6672;   /* #6b7280 measured 4.43:1 on the palest cell: under AA */
   --tp-line: #e4e7ec;
   --tp-track: #f0f2f5;
 
@@ -193,13 +195,14 @@ button, a, input, select, textarea {
   }
   .tp-btn {
     background: var(--tp-navy);
-    @apply inline-flex items-center gap-2 text-white rounded-full px-5 py-2.5 text-sm
-           hover:opacity-90 active:scale-[0.98];
+    /* 44px minimum: these are the primary actions and they are used on phones. */
+    @apply inline-flex items-center justify-center gap-2 text-white rounded-full px-5 py-2.5 text-sm
+           min-h-[44px] hover:opacity-90 active:scale-[0.98];
   }
   .tp-btn-ghost {
     border-color: #dfe3ea;
-    @apply inline-flex items-center gap-2 bg-white rounded-full px-5 py-2.5 text-sm border
-           hover:border-[#1e325a] active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 bg-white rounded-full px-5 py-2.5 text-sm border
+           min-h-[44px] hover:border-[#1e325a] active:scale-[0.98];
   }
   .tp-field {
     border-color: #dfe3ea;
@@ -231,4 +234,15 @@ button, a, input, select, textarea {
   --tp-cat-3: #2f8f6b;
   --tp-grid: #e8ebf0;
   --tp-axis: #b9c3d3;
+}
+
+/* A wide data table scrolls horizontally, which works but hides columns. Where
+   a screen offers a card list for small viewports, the table is hidden instead
+   of scrolled, so nothing important sits off-screen on a phone. */
+@media (max-width: 640px) {
+  .tp-table-wide { display: none; }
+  .tp-cards-narrow { display: flex; }
+}
+@media (min-width: 641px) {
+  .tp-cards-narrow { display: none; }
 }

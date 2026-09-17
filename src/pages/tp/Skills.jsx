@@ -13,7 +13,8 @@ import { shortDate, DASH } from '../../lib/tpFormat'
  * level, so the reading never depends on the fill alone.
  */
 const RAMP = [
-  { bg: '#f3f5f8', fg: '#6b7280' },
+  // Not #6b7280: it measures 4.43:1 against this cell, just under AA.
+  { bg: '#f3f5f8', fg: '#5f6672' },
   { bg: 'var(--tp-scale-1)', fg: 'var(--tp-ink)' },
   { bg: 'var(--tp-scale-2)', fg: 'var(--tp-ink)' },
   { bg: 'var(--tp-scale-3)', fg: '#10203f' },

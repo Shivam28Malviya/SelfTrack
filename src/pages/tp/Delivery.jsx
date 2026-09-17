@@ -167,7 +167,32 @@ export default function TpDelivery() {
             {tasks?.tasks.length === 0 ? (
               <TpEmpty title="No tasks match this filter" body="Clear the filter to see everything." />
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Phones get a card list; the eight-column table needs 900px
+                  and would push status and effort off-screen. */}
+              <ul className="tp-cards-narrow flex-col gap-3 m-0 p-0 list-none">
+                {(tasks?.tasks || []).map(task => (
+                  <li key={task.id} className="rounded-3xl p-4 flex flex-col gap-2"
+                    style={{ background: 'var(--tp-paper)' }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <Link to={`/tp/tasks/${task.id}`} className="text-sm">{task.title}</Link>
+                      <TaskStatus task={task} />
+                    </div>
+                    <p className="m-0 text-xs" style={{ color: 'var(--tp-muted)' }}>
+                      {task.ownerName || 'Unassigned'}{task.projectName ? ` · ${task.projectName}` : ''}
+                      {task.dueDate ? ` · due ${shortDate(task.dueDate)}` : ''}
+                    </p>
+                    <p className="m-0 text-xs tabular-nums" style={{ color: 'var(--tp-muted)' }}>
+                      {task.progressPct}% ·{' '}
+                      {task.estHours == null && task.actualHours == null
+                        ? 'no estimate'
+                        : `${task.estHours ?? DASH} / ${task.actualHours ?? DASH} h`}
+                      {task.reopenedCount > 0 ? ` · reopened ${task.reopenedCount}×` : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <div className="tp-table-wide overflow-x-auto">
                 <table className="w-full border-collapse min-w-[900px]">
                   <caption className="sr-only">Tasks</caption>
                   <thead>
@@ -217,6 +242,7 @@ export default function TpDelivery() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
 
             {pages > 1 && (

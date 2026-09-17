@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
@@ -12,21 +13,26 @@ import Files from './pages/Files'
 import ProtectedRoute from './components/ProtectedRoute'
 import { TpProvider } from './context/TpContext'
 import TpGuard from './components/tp/TpGuard'
-import TpOverview from './pages/tp/Overview'
-import TpPeople from './pages/tp/People'
-import TpEmployee from './pages/tp/Employee'
-import TpPersonForm from './pages/tp/PersonForm'
-import TpImport from './pages/tp/Import'
-import TpEntries from './pages/tp/Entries'
-import TpAudit from './pages/tp/Audit'
-import TpTask from './pages/tp/Task'
-import TpTaskForm from './pages/tp/TaskForm'
-import TpLeaveForm from './pages/tp/LeaveForm'
-import TpDelivery from './pages/tp/Delivery'
-import TpAttendance from './pages/tp/Attendance'
-import TpSkills from './pages/tp/Skills'
-import TpEntry from './pages/tp/Entry'
-import TpSettings from './pages/tp/Settings'
+
+// TeamPulse is a second application sharing this shell. Loading it eagerly
+// made every SelfTrack page download it, so its screens are split out and
+// fetched on first navigation to /tp.
+const TpOverview = lazy(() => import('./pages/tp/Overview'))
+const TpPeople = lazy(() => import('./pages/tp/People'))
+const TpEmployee = lazy(() => import('./pages/tp/Employee'))
+const TpPersonForm = lazy(() => import('./pages/tp/PersonForm'))
+const TpImport = lazy(() => import('./pages/tp/Import'))
+const TpEntries = lazy(() => import('./pages/tp/Entries'))
+const TpAudit = lazy(() => import('./pages/tp/Audit'))
+const TpTask = lazy(() => import('./pages/tp/Task'))
+const TpTaskForm = lazy(() => import('./pages/tp/TaskForm'))
+const TpLeaveForm = lazy(() => import('./pages/tp/LeaveForm'))
+const TpDelivery = lazy(() => import('./pages/tp/Delivery'))
+const TpAttendance = lazy(() => import('./pages/tp/Attendance'))
+const TpSkills = lazy(() => import('./pages/tp/Skills'))
+const TpEntry = lazy(() => import('./pages/tp/Entry'))
+const TpSettings = lazy(() => import('./pages/tp/Settings'))
+const TpMobile = lazy(() => import('./pages/tp/Mobile'))
 import CommandPalette from './components/CommandPalette'
 import AnnouncementBanner from './components/AnnouncementBanner'
 
@@ -73,8 +79,22 @@ export default function App() {
 
       {/* TeamPulse module. One provider for the whole subtree so role and
           config are fetched once rather than per screen. */}
-      <Route path="/tp" element={<Authed><TpProvider><Outlet /></TpProvider></Authed>}>
+      <Route path="/tp" element={
+        <Authed>
+          <TpProvider>
+            <Suspense fallback={
+              <div className="min-h-screen flex items-center justify-center" role="status">
+                <span className="sr-only">Loading TeamPulse</span>
+                <span aria-hidden="true" className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
+              </div>
+            }>
+              <Outlet />
+            </Suspense>
+          </TpProvider>
+        </Authed>
+      }>
         <Route index element={<TpOverview />} />
+        <Route path="today" element={<TpMobile />} />
         <Route path="people" element={<TpPeople />} />
         <Route path="people/new" element={
           <TpGuard roles={['admin', 'manager']} what="adding people"><TpPersonForm /></TpGuard>

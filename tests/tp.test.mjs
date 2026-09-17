@@ -336,3 +336,53 @@ test('an export row with a comma survives the CSV round trip', () => {
   )
   assert.equal(csv, 'Person,Note\r\n"Rao, Priya","said ""fine"""')
 })
+
+// ---- phase 8: contrast of the token pairs that actually appear together ----
+const srgb = (h) => h.replace('#', '').match(/../g).map(x => parseInt(x, 16) / 255)
+const linear = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+const luminance = (h) => {
+  const [r, g, b] = srgb(h).map(linear)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+test('text token pairs meet WCAG AA, and marks meet 3:1', () => {
+  const text = [
+    ['muted on paper', '#565d6b', '#f0f0f0'],
+    ['muted on tint', '#565d6b', '#dfe6ef'],
+    ['muted on white', '#565d6b', '#ffffff'],
+    ['ink on paper', '#1e325a', '#f0f0f0'],
+    ['ok pill', '#17542f', '#e3f1e8'],
+    ['warn pill', '#6b4000', '#fff4e5'],
+    ['bad pill', '#8f2117', '#fde8e6'],
+    ['info pill', '#3f4654', '#eef1f5'],
+    ['white on navy', '#ffffff', '#1e325a'],
+    ['ink on scale-3', '#10203f', '#8fa3c2'],
+    // The heatmap's #6b7280 measured 4.43:1 here and was replaced.
+    ['heatmap L0 label', '#5f6672', '#f3f5f8'],
+  ]
+  for (const [name, fg, bg] of text) {
+    const r = contrast(fg, bg)
+    assert.ok(r >= 4.5, `${name} is ${r.toFixed(2)}:1, under AA`)
+  }
+
+  const marks = [
+    ['cat-1', '#4577c0'], ['cat-2', '#c9791a'], ['cat-3', '#2f8f6b'], ['bad fill', '#8f2117'],
+  ]
+  for (const [name, color] of marks) {
+    const r = contrast(color, '#ffffff')
+    assert.ok(r >= 3, `${name} is ${r.toFixed(2)}:1 against the chart surface, under 3:1`)
+  }
+})
+
+test('the heatmap label colour that was replaced really did fail', () => {
+  // #6b7280 on the palest heatmap cell is 4.43:1, just under AA.
+  assert.ok(contrast('#6b7280', '#f3f5f8') < 4.5)
+  // The export's own #5E6470 passes on the tint (4.73:1). It was still
+  // darkened, for margin at 12px with wide letter-spacing, not to fix a
+  // failure — recorded here so nobody "restores" it believing it was broken.
+  assert.ok(contrast('#5E6470', '#dfe6ef') >= 4.5)
+})
