@@ -18,6 +18,9 @@ import { createTask, updateTask, getTask, listTasks, taskHistory, TASK_STATUSES 
 import {
   teamMetrics, personMetrics, monthlyTrend, onTimeByPerson, taskAging, effortScatter, resolvePeriod,
 } from '../../lib/tp/metrics.js'
+import { attentionReport, teamShape } from '../../lib/tp/attention.js'
+import { exportCsv, EXPORT_KINDS } from '../../lib/tp/exports.js'
+import { pushNotif } from '../../lib/state.js'
 import {
   listSkills, addSkill, updateSkill, rateSkill, heatmap, singlePointsOfFailure,
   findBySkill, listCerts, saveCert, deleteCert, skillLevelLabels,
@@ -382,7 +385,24 @@ export default async function handler(req, res) {
     if (leaveDecideMatch && method === 'POST') {
       const ctx = await requireTp(req)
       requireRole(ctx, 'admin', 'manager')
-      return res.status(200).json({ success: true, ...(await decideLeave(ctx, leaveDecideMatch[1], req.body || {})) })
+      const result = await decideLeave(ctx, leaveDecideMatch[1], req.body || {})
+      // Tell the person, through SelfTrack's existing notifications. A decision
+      // nobody is told about is not a decision they can act on.
+      const { rows: linked } = await sql`
+        select p.user_id, p.name from tp_leave_request r
+          join tp_person p on p.id = r.person_id
+         where r.id = ${result.id}
+      `
+      if (linked[0]?.user_id) {
+        await pushNotif(
+          linked[0].user_id,
+          result.status === 'approved'
+            ? `Your leave request was approved (${result.daysWritten} working day(s)).`
+            : 'Your leave request was not approved.',
+          result.status === 'approved' ? '✅' : '🚫'
+        )
+      }
+      return res.status(200).json({ success: true, ...result })
     }
 
     const leaveBalanceMatch = route.match(/^\/people\/(\d+)\/leave$/)
@@ -462,6 +482,38 @@ export default async function handler(req, res) {
         ? await saveCert(ctx, req.body || {}, certMatch[1])
         : await deleteCert(ctx, certMatch[1])
       return res.status(200).json({ success: true, ...result })
+    }
+
+    // ---- overview ----
+    if (route === '/overview' && method === 'GET') {
+      const ctx = await requireTp(req)
+      const [metrics, attention, shape, certs, trend] = await Promise.all([
+        teamMetrics(ctx, query),
+        attentionReport(ctx),
+        teamShape(ctx),
+        listCerts(ctx),
+        monthlyTrend(ctx, { months: 6 }),
+      ])
+      return res.status(200).json({
+        success: true,
+        metrics,
+        attention,
+        shape,
+        trend,
+        expiringCerts: certs.expiring.length,
+      })
+    }
+
+    if (route === '/attention' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, ...(await attentionReport(ctx)) })
+    }
+
+    // ---- export ----
+    if (route === '/export' && method === 'GET') {
+      const ctx = await requireTp(req)
+      const result = await exportCsv(ctx, query)
+      return res.status(200).json({ success: true, kinds: EXPORT_KINDS, ...result })
     }
 
     return res.status(404).json({ success: false, error: 'Not found.' })

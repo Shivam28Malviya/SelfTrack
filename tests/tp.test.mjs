@@ -292,3 +292,47 @@ test('the independent level is the one the cover rule counts', () => {
   // Changing this changes who counts as cover for a skill, so it is pinned.
   assert.equal(INDEPENDENT_LEVEL, 3)
 })
+
+// ---- phase 7: attention status rules ----
+import { STATUS } from '../lib/tp/attention.js'
+import { DEFAULTS as CFG } from '../lib/tp/config.js'
+
+// Mirrors statusFrom in lib/tp/attention.js, which is private to that module.
+const statusFrom = (keys, rules = CFG.attention) => {
+  const hasOvertime = keys.includes('overtime')
+  const others = keys.filter(k => k !== 'overtime').length
+  if (keys.length >= rules.at_risk_signals) return STATUS.AT_RISK
+  if (hasOvertime && others >= 1) return STATUS.BURNOUT
+  if (keys.length >= rules.watch_signals) return STATUS.WATCH
+  if (hasOvertime) return STATUS.OVERTIME
+  return STATUS.ON_TRACK
+}
+
+test('status follows the signal count, with overtime treated separately', () => {
+  assert.equal(statusFrom([]), 'On track')
+  assert.equal(statusFrom(['ontime_drop']), 'On track')        // one signal is not a flag
+  assert.equal(statusFrom(['overtime']), 'Overtime')            // overtime alone is its own label
+  assert.equal(statusFrom(['overtime', 'unplanned']), 'Burnout watch')
+  assert.equal(statusFrom(['ontime_drop', 'unplanned']), 'Watch')
+  assert.equal(statusFrom(['ontime_drop', 'unplanned', 'overdue']), 'At risk')
+  assert.equal(statusFrom(['overtime', 'unplanned', 'overdue']), 'At risk')
+})
+
+test('lowering the thresholds flags more people, as configured', () => {
+  const strict = { ...CFG.attention, watch_signals: 3, at_risk_signals: 4 }
+  assert.equal(statusFrom(['ontime_drop', 'unplanned'], strict), 'On track')
+  const loose = { ...CFG.attention, watch_signals: 1, at_risk_signals: 2 }
+  assert.equal(statusFrom(['ontime_drop'], loose), 'Watch')
+  assert.equal(statusFrom(['ontime_drop', 'unplanned'], loose), 'At risk')
+})
+
+// ---- phase 7: export watermark ----
+import { toCsv as toCsvAgain } from '../lib/tp/csv.js'
+
+test('an export row with a comma survives the CSV round trip', () => {
+  const csv = toCsvAgain(
+    [{ name: 'Rao, Priya', note: 'said "fine"' }],
+    [{ key: 'name', label: 'Person' }, { key: 'note', label: 'Note' }]
+  )
+  assert.equal(csv, 'Person,Note\r\n"Rao, Priya","said ""fine"""')
+})

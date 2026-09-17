@@ -235,8 +235,8 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 | 4 | Tasks and delivery dashboard, metric endpoints and snapshots | done |
 | 5 | Attendance calendar, holidays, leave, late logins | done |
 | 6 | Skill catalogue, self and manager ratings, heatmap, certificates | done |
-| 7 | Attention engine, overview KPIs, notifications, exports | next |
-| 8 | Accessibility audit, responsive down to tablet, mobile, performance | |
+| 7 | Attention engine, overview KPIs, notifications, exports | done |
+| 8 | Accessibility audit, responsive down to tablet, mobile, performance | next |
 
 ### Phase 1 delivered
 
@@ -424,3 +424,31 @@ Capture, and the ability to correct it.
 - The heatmap uses one hue getting darker with level — level is a magnitude,
   not four unrelated categories — and every cell prints its level, so the
   reading never depends on the fill alone.
+
+### Phase 7 delivered
+
+- `lib/tp/attention.js` implements section 4 in a handful of grouped queries
+  rather than per person, so it still works past a dozen people. Three
+  properties matter more than the arithmetic:
+  - **each person is compared with their own previous quarter**, never ranked
+    against colleagues, so whoever has the harder project is not punished for it
+  - **a signal needs data to fire** — somebody with no client feedback never
+    gets a "score dropped" signal
+  - **the signals ship with the status.** The overview shows why each person is
+    flagged, and a manual override always carries its reason and states what
+    the computed status was. A label with no reasons attached is not reviewable,
+    and the person is entitled to see what produced it.
+- Overview is now real: KPIs from `teamMetrics`, the flagged list with its
+  reasons, team shape, working-from split, a six-month on-time trend and the
+  expiring-certification warning. Utilization is **absent rather than empty**,
+  with a line saying why.
+- Leave decisions notify the person through SelfTrack's existing notifications.
+  A decision nobody is told about is not one they can act on.
+- `lib/tp/exports.js` — CSV export of people, tasks, attendance and feedback.
+  Each file opens with a header naming who asked and when, and the export is
+  audited: a file leaves the access controls behind, so it has to carry its own
+  provenance. Exporting more than one person needs a manager or admin.
+- Settings makes every number the design hardcoded editable: the 80% target,
+  the attention thresholds, shift start and grace per region, retention, the
+  skill catalogue and the holiday calendar. Each change is audited, because
+  changing a threshold changes who gets flagged.
