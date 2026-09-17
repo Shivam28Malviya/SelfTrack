@@ -327,6 +327,49 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, period, byPerson, aging, scatter })
     }
 
+    // One call for everything the profile draws, so the page does not fan out
+    // into eight requests that each re-derive the same access check.
+    const profileMatch = route.match(/^\/people\/(\d+)\/profile$/)
+    if (profileMatch && method === 'GET') {
+      const ctx = await requireTp(req)
+      const personId = parseId(profileMatch[1], 'Person')
+      assertCanSeePerson(ctx, personId)
+      const person = await getPerson(personId)
+      if (!person) throw new HttpError(404, 'Person not found.')
+
+      const [metrics, trend, tasks, grid, certs, achievements, balance, attention] = await Promise.all([
+        personMetrics(ctx, personId, query),
+        monthlyTrend(ctx, { months: 6, personId }),
+        listTasks(ctx, { ownerId: String(personId), status: 'open', limit: '10', sort: 'due' }),
+        monthGrid(ctx, { month: query.month, personId: String(personId) }),
+        listCerts(ctx, { personId: String(personId) }),
+        listEntries(ctx, { personId: String(personId), kind: 'achievement', limit: '5' }),
+        leaveBalance(personId),
+        attentionReport(ctx),
+      ])
+
+      const skills = await heatmap(ctx)
+      const myRow = skills.rows.find(r => r.personId === personId)
+
+      if (ctx.self?.id !== personId) await auditRead(ctx.user, 'person', personId)
+
+      return res.status(200).json({
+        success: true,
+        person,
+        metrics,
+        trend,
+        tasks: tasks.tasks,
+        openTaskCount: tasks.total,
+        grid,
+        certs: certs.certs,
+        achievements: achievements.entries,
+        leave: balance,
+        skills: skills.skills,
+        skillCells: myRow ? myRow.cells : [],
+        attention: (attention.people || []).find(p => p.personId === personId) || null,
+      })
+    }
+
     const personMetricsMatch = route.match(/^\/people\/(\d+)\/metrics$/)
     if (personMetricsMatch && method === 'GET') {
       const ctx = await requireTp(req)
