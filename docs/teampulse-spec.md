@@ -234,8 +234,8 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 | 3 | Quick log, entry list, audit viewer | done |
 | 4 | Tasks and delivery dashboard, metric endpoints and snapshots | done |
 | 5 | Attendance calendar, holidays, leave, late logins | done |
-| 6 | Skill catalogue, self and manager ratings, heatmap, certificates | next |
-| 7 | Attention engine, overview KPIs, notifications, exports | |
+| 6 | Skill catalogue, self and manager ratings, heatmap, certificates | done |
+| 7 | Attention engine, overview KPIs, notifications, exports | next |
 | 8 | Accessibility audit, responsive down to tablet, mobile, performance | |
 
 ### Phase 1 delivered
@@ -395,3 +395,32 @@ Capture, and the ability to correct it.
   diagnosis: it may mean a heavy project or a holiday nobody logged.
 - Spectators are refused attendance outright; every other role is still
   filtered per row, and a manager's read is audited.
+
+### Phase 6 delivered
+
+- `lib/tp/skills.js` — catalogue (admin-maintained, so the heatmap is no longer
+  eight hardcoded columns), ratings, heatmap, cover analysis, the finder and
+  certifications.
+- **Self and manager ratings are separate rows.** The gap between them is the
+  useful signal, so neither overwrites the other; the heatmap shows the manager
+  rating and marks the cells where the person rates themselves differently. A
+  person rates only themselves; a manager rates only their own team and cannot
+  rate themselves as their own manager.
+- Retiring a skill keeps its ratings. They are history, and a past quarter's
+  heatmap still needs them.
+- Single points of failure are **counted from the data**, not listed by hand.
+  The export named Integrator as a single point of failure on a screen whose own
+  heatmap showed two people covering it. The count is of active people rated at
+  or above the independent level by a manager, and "nobody rated" is reported
+  differently from "one person", because they need different responses.
+- The finder reports availability as the allocation figure — "40% free" is a
+  staffing conversation; "available" is a promise the data cannot make. It also
+  distinguishes "nobody has the skill" from "nobody has been rated for it",
+  which is the more likely answer early on.
+- Certifications: a past expiry date flips the status to expired on read, so
+  nothing sits at "completed" once it has lapsed. Expiry must be after
+  completion, a completed certification needs its date, and an enrolled one
+  cannot have one.
+- The heatmap uses one hue getting darker with level — level is a magnitude,
+  not four unrelated categories — and every cell prints its level, so the
+  reading never depends on the fill alone.

@@ -19,6 +19,10 @@ import {
   teamMetrics, personMetrics, monthlyTrend, onTimeByPerson, taskAging, effortScatter, resolvePeriod,
 } from '../../lib/tp/metrics.js'
 import {
+  listSkills, addSkill, updateSkill, rateSkill, heatmap, singlePointsOfFailure,
+  findBySkill, listCerts, saveCert, deleteCert, skillLevelLabels,
+} from '../../lib/tp/skills.js'
+import {
   monthGrid, lateLoginTable, absenceByType, unusedLeave,
   listHolidays, addHoliday, removeHoliday,
   requestLeave, listLeave, decideLeave, leaveBalance, setLeaveEntitlement,
@@ -393,6 +397,71 @@ export default async function handler(req, res) {
       const ctx = await requireTp(req)
       requireRole(ctx, 'admin', 'manager')
       return res.status(200).json({ success: true, balance: await setLeaveEntitlement(ctx, leaveBalanceMatch[1], req.body || {}) })
+    }
+
+    // ---- skills ----
+    if (route === '/skills' && method === 'GET') {
+      const ctx = await requireTp(req)
+      const [map, spof, levels] = await Promise.all([
+        heatmap(ctx),
+        singlePointsOfFailure(ctx),
+        skillLevelLabels(),
+      ])
+      return res.status(200).json({ success: true, ...map, spof, levels })
+    }
+
+    if (route === '/skills/catalogue' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({
+        success: true,
+        skills: await listSkills({ includeInactive: ctx.role === 'admin' && query.includeInactive === 'true' }),
+        levels: await skillLevelLabels(),
+      })
+    }
+
+    if (route === '/skills/catalogue' && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin')
+      return res.status(200).json({ success: true, skill: await addSkill(ctx, req.body || {}) })
+    }
+
+    const skillMatch = route.match(/^\/skills\/catalogue\/(\d+)$/)
+    if (skillMatch && method === 'PUT') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin')
+      return res.status(200).json({ success: true, skill: await updateSkill(ctx, skillMatch[1], req.body || {}) })
+    }
+
+    if (route === '/skills/rate' && method === 'POST') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, ...(await rateSkill(ctx, req.body || {})) })
+    }
+
+    if (route === '/skills/find' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, matches: await findBySkill(ctx, query) })
+    }
+
+    // ---- certifications ----
+    if (route === '/certs' && method === 'GET') {
+      const ctx = await requireTp(req)
+      return res.status(200).json({ success: true, ...(await listCerts(ctx, query)) })
+    }
+
+    if (route === '/certs' && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      return res.status(200).json({ success: true, ...(await saveCert(ctx, req.body || {})) })
+    }
+
+    const certMatch = route.match(/^\/certs\/(\d+)$/)
+    if (certMatch && (method === 'PUT' || method === 'DELETE')) {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      const result = method === 'PUT'
+        ? await saveCert(ctx, req.body || {}, certMatch[1])
+        : await deleteCert(ctx, certMatch[1])
+      return res.status(200).json({ success: true, ...result })
     }
 
     return res.status(404).json({ success: false, error: 'Not found.' })

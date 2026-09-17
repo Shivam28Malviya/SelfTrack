@@ -284,3 +284,11 @@ test('weekends are derived from the real weekday, not the day number', () => {
   assert.equal(weekend.length, 8)
   assert.equal(weekend[0], '2026-02-01')
 })
+
+// ---- phase 6: skills ----
+import { INDEPENDENT_LEVEL } from '../lib/tp/skills.js'
+
+test('the independent level is the one the cover rule counts', () => {
+  // Changing this changes who counts as cover for a skill, so it is pinned.
+  assert.equal(INDEPENDENT_LEVEL, 3)
+})
