@@ -31,6 +31,7 @@ import {
   listHolidays, addHoliday, removeHoliday,
   requestLeave, listLeave, decideLeave, leaveBalance, setLeaveEntitlement,
 } from '../../lib/tp/attendance.js'
+import { runMigrations, schemaStatus } from '../../lib/tp/migrate.js'
 import { sql } from '../../lib/db.js'
 
 export default async function handler(req, res) {
@@ -42,9 +43,39 @@ export default async function handler(req, res) {
 
   try {
     // ---- health ----
-    // Unauthenticated on purpose: it reports reachability, nothing else.
+    // Unauthenticated on purpose: it reports reachability and whether the
+    // schema is in place, nothing else. A deployment that has never been
+    // migrated should say so rather than 500 on the first real request.
     if (route === '/health' && method === 'GET') {
-      return res.status(200).json({ success: true, module: 'teampulse', ok: true })
+      let schema = null
+      try {
+        schema = await schemaStatus()
+      } catch (err) {
+        return res.status(200).json({ success: true, module: 'teampulse', ok: false, database: 'unreachable' })
+      }
+      return res.status(200).json({ success: true, module: 'teampulse', ok: schema.ready, schema })
+    }
+
+    // ---- schema ----
+    // Applying migrations from inside the app is the only route to the
+    // production database: the connection string exists solely in the
+    // deployment's environment. Admin-only, idempotent, and tracked in
+    // _migrations, so running it twice does nothing.
+    if (route === '/migrate' && (method === 'GET' || method === 'POST')) {
+      const ctx = await requireTp(req).catch(async (err) => {
+        // Before the first migration there are no tp_ tables, so requireTp
+        // cannot resolve a TeamPulse profile. Fall back to the plain admin
+        // check so the very first run is possible.
+        const { requireAdmin } = await import('../../lib/auth.js')
+        const user = await requireAdmin(req)
+        return { role: 'admin', user, self: null, scope: 'all', ids: null, bootstrap: true }
+      })
+      requireRole(ctx, 'admin')
+      const result = await runMigrations({ dryRun: method === 'GET' })
+      if (method === 'POST' && result.appliedNow.length > 0) {
+        await audit({ actor: ctx.user, action: 'schema.migrate', entity: 'schema', after: { applied: result.appliedNow } })
+      }
+      return res.status(200).json({ success: true, ...result, schema: await schemaStatus() })
     }
 
     // ---- who am I, in TeamPulse terms ----

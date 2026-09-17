@@ -420,3 +420,29 @@ test('a bigint id from the driver does not compare equal to a number', () => {
   assert.notEqual(fromDriver, 7)
   assert.equal(Number(fromDriver), 7)
 })
+
+// ---- embedded migrations ----
+import { readFileSync } from 'node:fs'
+import { buildSource } from '../scripts/build-migrations.mjs'
+import { MIGRATIONS } from '../lib/tp/migrations.js'
+
+test('the embedded migrations match db/migrations exactly', () => {
+  // The generated file is what the deployed app applies. If someone edits a
+  // .sql file and forgets to regenerate, production would silently run the
+  // old SQL — so the drift is a test failure, not a convention.
+  const onDisk = readFileSync(new URL('../lib/tp/migrations.js', import.meta.url), 'utf8')
+  assert.equal(onDisk, buildSource(), 'run `npm run build:migrations`')
+})
+
+test('migrations are ordered, idempotent in shape, and non-empty', () => {
+  assert.ok(MIGRATIONS.length >= 4)
+  const names = MIGRATIONS.map(m => m.name)
+  assert.deepEqual(names, [...names].sort(), 'migrations must apply in name order')
+  for (const m of MIGRATIONS) {
+    assert.ok(m.sql.trim().length > 0, `${m.name} is empty`)
+    // Every create must tolerate a rerun: the runner has no transaction across
+    // statements, so a half-applied file has to be finishable by running again.
+    const creates = m.sql.match(/create (table|index|unique index)\s+(?!if not exists)/gi) || []
+    assert.deepEqual(creates, [], `${m.name} has a create without "if not exists"`)
+  }
+})
