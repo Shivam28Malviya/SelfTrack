@@ -119,3 +119,77 @@ test('config defaults cover every key the UI reads', () => {
   assert.equal(DEFAULTS.attention.at_risk_signals, 3)
   assert.equal(DEFAULTS.targets.on_time_pct, 80)
 })
+
+// ---- phase 2: person write path and CSV import ----
+import { parseCsv, parseCsvObjects, toCsv } from '../lib/tp/csv.js'
+import { parsePersonInput, assertNoManagerCycle } from '../lib/tp/personWrite.js'
+
+test('CSV reader handles quotes, embedded commas and CRLF', () => {
+  const rows = parseCsv('a,b\r\n"O\'Brien, Sean",2\r\n"say ""hi""",3\r\n')
+  assert.deepEqual(rows, [['a', 'b'], ["O'Brien, Sean", '2'], ['say "hi"', '3']])
+})
+
+test('CSV reader keeps a field containing a newline in one cell', () => {
+  const rows = parseCsv('a,b\n"line1\nline2",x\n')
+  assert.equal(rows.length, 2)
+  assert.equal(rows[1][0], 'line1\nline2')
+  assert.equal(rows[1][1], 'x')
+})
+
+test('CSV reader drops a trailing newline and a BOM instead of making a blank row', () => {
+  assert.equal(parseCsv('﻿name\nPriya\n').length, 2)
+  assert.equal(parseCsv('name\nPriya\n\n\n').length, 2)
+})
+
+test('CSV headers are normalised to snake_case keys with a line number', () => {
+  const { headers, records } = parseCsvObjects('Name,Total Exp Years\nPriya, 8.4 \n')
+  assert.deepEqual(headers, ['name', 'total_exp_years'])
+  assert.equal(records[0].name, 'Priya')
+  assert.equal(records[0].total_exp_years, '8.4')
+  assert.equal(records[0].__line, 2)   // header is line 1
+})
+
+test('toCsv quotes anything that would break the format', () => {
+  const out = toCsv([{ a: 'x,y', b: 'say "hi"' }], [{ key: 'a' }, { key: 'b' }])
+  assert.equal(out, 'a,b\r\n"x,y","say ""hi"""')
+})
+
+test('person input converts years to months and rejects the impossible combination', () => {
+  const p = parsePersonInput({
+    name: 'Priya D.', designation: 'Senior Consultant', workLocation: 'Client site',
+    totalExpYears: 8.4, relevantExpYears: 6.1,
+  })
+  assert.equal(p.total_exp_months, 101)
+  assert.equal(p.relevant_exp_months, 73)
+  assert.equal(p.initials, 'PD')
+  throws(() => parsePersonInput({
+    name: 'X Y', designation: 'Analyst', workLocation: 'Office',
+    totalExpYears: 2, relevantExpYears: 5,
+  }), /cannot exceed total/)
+})
+
+test('person input rejects a bad designation, email and allocation', () => {
+  const base = { name: 'X Y', designation: 'Analyst', workLocation: 'Office' }
+  throws(() => parsePersonInput({ ...base, designation: 'Chief' }))
+  throws(() => parsePersonInput({ ...base, workLocation: 'Beach' }))
+  throws(() => parsePersonInput({ ...base, email: 'not-an-email' }))
+  throws(() => parsePersonInput({ ...base, allocationPct: 140 }))
+  throws(() => parsePersonInput({ ...base, name: 'A' }))
+})
+
+test('a status override without a reason is refused', () => {
+  const base = { name: 'X Y', designation: 'Analyst', workLocation: 'Office' }
+  throws(() => parsePersonInput({ ...base, statusOverride: 'At risk' }), /needs a reason/)
+  const ok = parsePersonInput({ ...base, statusOverride: 'At risk', statusOverrideReason: 'Client escalation' })
+  assert.equal(ok.status_override, 'At risk')
+})
+
+test('partial input only touches the keys it was given', () => {
+  const p = parsePersonInput({ workLocation: 'Home' }, { partial: true })
+  assert.deepEqual(Object.keys(p), ['work_location'])
+})
+
+test('a person cannot be made their own manager', async () => {
+  await assert.rejects(() => assertNoManagerCycle(7, 7), (e) => e.status === 400)
+  await assertNoManagerCycle(null, null)   // nothing to check, must not throw
+})

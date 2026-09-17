@@ -4,12 +4,14 @@ import TpLayout from '../../components/tp/TpLayout'
 import StatusPill from '../../components/tp/StatusPill'
 import { TpLoading, TpEmpty, TpError } from '../../components/tp/States'
 import { tpGet } from '../../lib/tpApi'
+import { useTp } from '../../context/TpContext'
 import { years, initialsOf, DASH } from '../../lib/tpFormat'
 
 const DESIGNATIONS = ['All', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst']
 const LOCATIONS = ['All', 'Client site', 'Office', 'Home']
 
 export default function TpPeople() {
+  const { role } = useTp()
   // Filters live in the URL so a manager can share or bookmark a view, and so
   // the back button returns to the list they were looking at.
   const [params, setParams] = useSearchParams()
@@ -65,6 +67,13 @@ export default function TpPeople() {
               {data ? `${data.total} ${data.total === 1 ? 'person' : 'people'} you can see` : DASH}
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-3">
+          {(role === 'admin' || role === 'manager') && (
+            <Link to="/tp/people/new" className="tp-btn">Add person</Link>
+          )}
+          {role === 'admin' && (
+            <Link to="/tp/people/import" className="tp-btn-ghost">Import</Link>
+          )}
           <div className="flex gap-1 p-1 rounded-full bg-white/60" role="group" aria-label="View">
             {['table', 'cards'].map(v => (
               <button
@@ -80,6 +89,7 @@ export default function TpPeople() {
                 {v}
               </button>
             ))}
+          </div>
           </div>
         </div>
 
@@ -124,7 +134,7 @@ export default function TpPeople() {
           title="No people match this view"
           body={
             data.total === 0 && !params.toString()
-              ? 'Nobody has been added to TeamPulse yet. An administrator can import the team or add people one at a time.'
+              ? 'Nobody has been added to TeamPulse yet. Import the team from a CSV, or add people one at a time.'
               : 'Try clearing a filter.'
           }
         />

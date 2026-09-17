@@ -228,8 +228,8 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 |---|---|---|
 | 0 | Definitions, metric formulas, attention rule, permission matrix | done — this document |
 | 1 | Migrations, roles and row scoping, config, API split, app shell, people list | done |
-| 2 | Add and edit people, import, manager tree editing | next |
-| 3 | Quick log for all five entry types, entry list, audit viewer | |
+| 2 | Add and edit people, import, manager tree editing | done |
+| 3 | Quick log for all five entry types, entry list, audit viewer | next |
 | 4 | Tasks and delivery dashboard, metric endpoints and snapshots | |
 | 5 | Attendance calendar, holidays, leave, late logins | |
 | 6 | Skill catalogue, self and manager ratings, heatmap, certificates | |
@@ -270,3 +270,26 @@ npm run dev            # TeamPulse is at /tp
 A signed-in account needs `users.status = 'approved'`, and a manager or member
 needs a `tp_person` row whose `user_id` points at them. The seed script prints
 the statement that links one.
+
+### Phase 2 delivered
+
+- `lib/tp/personWrite.js` — one validator for create, edit and import.
+  Experience is entered in years and stored in months. Manager cycles are
+  rejected by checking the candidate against the person's own subtree, which
+  the table constraint cannot do. A manager may only assign a manager from
+  their own tree, so they cannot move someone out of their own visibility.
+- `lib/tp/csv.js` — an RFC 4180 reader. A name like `O'Brien, Sean` or a note
+  with a comma in it would otherwise shift every later column.
+- `lib/tp/personImport.js` — dry run first, and nothing is written unless
+  every row validates. Duplicate emails inside the file are caught as well as
+  against the table. Managers must already exist, so they are imported first.
+- API: `POST /people`, `PUT /people/:id` (with optimistic locking on
+  `updated_at`, returning 409 and the current row on a conflict),
+  `DELETE /people/:id` (deactivate, refused while they still manage active
+  people), `POST /people/import`, `GET /options`.
+- Front end: add and edit form with inline validation mirroring the server,
+  a deactivate confirmation that says what it does and does not do, and an
+  import screen that shows per-row problems with line numbers before anything
+  is written.
+- Deleting a person is never offered. Deactivation keeps their history, which
+  the team metrics and the audit trail both still need.

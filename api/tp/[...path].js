@@ -6,7 +6,12 @@ import { requireTp, assertCanSeePerson, requireRole } from '../../lib/tp/roles.j
 import { getConfig, setConfig, DEFAULTS } from '../../lib/tp/config.js'
 import { listPeople, getPerson } from '../../lib/tp/people.js'
 import { auditRead, audit } from '../../lib/tp/audit.js'
-import { id as parseId, oneOf } from '../../lib/tp/validate.js'
+import { id as parseId, oneOf, str } from '../../lib/tp/validate.js'
+import {
+  parsePersonInput, assertNoManagerCycle, assertProjectExists,
+  assertManagerInScope, allocationWarning, DESIGNATIONS, LOCATIONS, REGIONS,
+} from '../../lib/tp/personWrite.js'
+import { importPeople, IMPORT_TEMPLATE_HEADERS } from '../../lib/tp/personImport.js'
 import { sql } from '../../lib/db.js'
 
 export default async function handler(req, res) {
@@ -79,6 +84,139 @@ export default async function handler(req, res) {
       // Reading someone else's record is itself an auditable event.
       if (ctx.self?.id !== personId) await auditRead(ctx.user, 'person', personId)
       return res.status(200).json({ success: true, person })
+    }
+
+    // ---- people: write ----
+    if (route === '/people' && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+
+      const p = parsePersonInput(req.body || {})
+      // A manager adding someone must place them under themselves or someone
+      // in their tree, otherwise they create a record they cannot then read.
+      if (ctx.role === 'manager' && !p.manager_id) p.manager_id = Number(ctx.self.id)
+      await assertManagerInScope(ctx, p.manager_id)
+      await assertProjectExists(p.project_id)
+
+      const { rows } = await sql`
+        insert into tp_person
+          (name, initials, email, designation, manager_id, project_id, region, work_location,
+           allocation_pct, total_exp_months, relevant_exp_months, date_joined_org, date_joined_team)
+        values
+          (${p.name}, ${p.initials}, ${p.email ?? null}, ${p.designation}, ${p.manager_id ?? null},
+           ${p.project_id ?? null}, ${p.region ?? 'IN'}, ${p.work_location},
+           ${p.allocation_pct ?? 100}, ${p.total_exp_months}, ${p.relevant_exp_months},
+           ${p.date_joined_org ?? null}, ${p.date_joined_team ?? null})
+        returning id
+      `
+      const personId = Number(rows[0].id)
+      await audit({ actor: ctx.user, action: 'person.create', entity: 'person', entityId: personId, personId, after: p })
+      return res.status(200).json({
+        success: true,
+        person: await getPerson(personId),
+        warning: allocationWarning(p.allocation_pct ?? 100),
+      })
+    }
+
+    const personWriteMatch = route.match(/^\/people\/(\d+)$/)
+    if (personWriteMatch && method === 'PUT') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      const personId = parseId(personWriteMatch[1], 'person id')
+      assertCanSeePerson(ctx, personId)
+
+      const before = await getPerson(personId)
+      if (!before) throw new HttpError(404, 'Person not found.')
+
+      // Optimistic locking: two managers editing the same person must not
+      // silently overwrite each other.
+      const { rows: current } = await sql`select updated_at from tp_person where id = ${personId}`
+      const expected = req.body?.updatedAt
+      if (expected && new Date(expected).getTime() !== new Date(current[0].updated_at).getTime()) {
+        return res.status(409).json({
+          success: false,
+          error: 'Someone else changed this person while you were editing. Review the current version and try again.',
+          person: before,
+        })
+      }
+
+      const p = parsePersonInput(req.body || {}, { partial: true })
+      if ('manager_id' in p) {
+        await assertNoManagerCycle(personId, p.manager_id)
+        await assertManagerInScope(ctx, p.manager_id)
+      }
+      if ('project_id' in p) await assertProjectExists(p.project_id)
+      if (Object.keys(p).length === 0) throw new HttpError(400, 'Nothing to update.')
+
+      // Column names come from parsePersonInput's fixed key set, never from
+      // the request body, so this interpolation cannot be steered.
+      const keys = Object.keys(p)
+      const assignments = keys.map((k, i) => `${k} = $${i + 1}`).join(', ')
+      await sql.query(
+        `update tp_person set ${assignments}, updated_at = now() where id = $${keys.length + 1}`,
+        [...keys.map(k => p[k]), personId]
+      )
+
+      const after = await getPerson(personId)
+      await audit({ actor: ctx.user, action: 'person.update', entity: 'person', entityId: personId, personId, before, after })
+      return res.status(200).json({ success: true, person: after, warning: allocationWarning(after.allocationPct) })
+    }
+
+    if (personWriteMatch && method === 'DELETE') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin', 'manager')
+      const personId = parseId(personWriteMatch[1], 'person id')
+      assertCanSeePerson(ctx, personId)
+
+      const before = await getPerson(personId)
+      if (!before) throw new HttpError(404, 'Person not found.')
+
+      // Deactivate, never delete: their delivery and attendance history is
+      // still needed for team-level history and for the audit trail.
+      const { rows: reports } = await sql`select count(*)::int as n from tp_person where manager_id = ${personId} and active = true`
+      if (reports[0].n > 0) {
+        throw new HttpError(400, `${before.name} still manages ${reports[0].n} active people. Reassign them first.`)
+      }
+      await sql`update tp_person set active = false, updated_at = now() where id = ${personId}`
+      await audit({ actor: ctx.user, action: 'person.deactivate', entity: 'person', entityId: personId, personId, before })
+      return res.status(200).json({ success: true, person: await getPerson(personId) })
+    }
+
+    // ---- people: import ----
+    if (route === '/people/import' && method === 'POST') {
+      const ctx = await requireTp(req)
+      requireRole(ctx, 'admin')
+      const csv = str(req.body?.csv, 'File contents', { max: 400000 })
+      const commit = req.body?.commit === true
+      const summary = await importPeople(csv, { commit, actorUserId: ctx.user.id })
+      return res.status(200).json({ success: true, ...summary })
+    }
+
+    if (route === '/people/import/template' && method === 'GET') {
+      await requireTp(req)
+      return res.status(200).json({ success: true, headers: IMPORT_TEMPLATE_HEADERS })
+    }
+
+    // ---- reference lists for forms ----
+    if (route === '/options' && method === 'GET') {
+      const ctx = await requireTp(req)
+      // Manager choices are limited to what the caller may see, so the picker
+      // cannot be used to enumerate the wider organisation.
+      const managers = ctx.scope === 'all'
+        ? (await sql`select id, name from tp_person where active = true order by name`).rows
+        : ctx.ids.length
+          ? (await sql.query(
+              'select id, name from tp_person where active = true and id = any($1::bigint[]) order by name',
+              [ctx.ids]
+            )).rows
+          : []
+      return res.status(200).json({
+        success: true,
+        designations: DESIGNATIONS,
+        locations: LOCATIONS,
+        regions: REGIONS,
+        managers: managers.map(m => ({ id: Number(m.id), name: m.name })),
+      })
     }
 
     return res.status(404).json({ success: false, error: 'Not found.' })

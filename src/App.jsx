@@ -15,6 +15,8 @@ import TpGuard from './components/tp/TpGuard'
 import TpOverview from './pages/tp/Overview'
 import TpPeople from './pages/tp/People'
 import TpEmployee from './pages/tp/Employee'
+import TpPersonForm from './pages/tp/PersonForm'
+import TpImport from './pages/tp/Import'
 import TpDelivery from './pages/tp/Delivery'
 import TpAttendance from './pages/tp/Attendance'
 import TpSkills from './pages/tp/Skills'
@@ -69,7 +71,16 @@ export default function App() {
       <Route path="/tp" element={<Authed><TpProvider><Outlet /></TpProvider></Authed>}>
         <Route index element={<TpOverview />} />
         <Route path="people" element={<TpPeople />} />
+        <Route path="people/new" element={
+          <TpGuard roles={['admin', 'manager']} what="adding people"><TpPersonForm /></TpGuard>
+        } />
+        <Route path="people/import" element={
+          <TpGuard roles={['admin']} what="importing people"><TpImport /></TpGuard>
+        } />
         <Route path="people/:id" element={<TpEmployee />} />
+        <Route path="people/:id/edit" element={
+          <TpGuard roles={['admin', 'manager']} what="editing people"><TpPersonForm /></TpGuard>
+        } />
         <Route path="delivery" element={<TpDelivery />} />
         <Route path="attendance" element={
           <TpGuard roles={['admin', 'manager', 'member']} what="attendance"><TpAttendance /></TpGuard>
