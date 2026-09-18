@@ -5,13 +5,22 @@
 // Usage: vercel env pull .env.local && node --env-file=.env.local scripts/migrate.mjs
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { sql } from '@vercel/postgres'
+import { sql } from '../lib/db.js'
+import { splitStatements } from '../lib/tp/sqlSplit.js'
 
 const schemaPath = fileURLToPath(new URL('../db/schema.sql', import.meta.url))
 const migrationsDir = fileURLToPath(new URL('../db/migrations/', import.meta.url))
 
+// One statement per request: the Neon driver's HTTP transport takes a single
+// statement, so a whole file cannot be sent as one string.
+async function applyScript(script) {
+  for (const statement of splitStatements(script)) {
+    await sql.query(statement)
+  }
+}
+
 async function applyBaseSchema() {
-  await sql.query(readFileSync(schemaPath, 'utf8'))
+  await applyScript(readFileSync(schemaPath, 'utf8'))
   console.log('Base schema applied.')
 }
 
@@ -33,13 +42,10 @@ async function applyMigrations() {
 
   for (const file of files) {
     if (applied.has(file)) continue
-    const body = readFileSync(migrationsDir + file, 'utf8')
-    // One statement per migration file would let us wrap this in a
-    // transaction; @vercel/postgres runs multi-statement strings on a single
-    // connection without one, so a half-applied file has to be fixed by hand.
-    // Every migration is written idempotently (create if not exists) so a
-    // rerun after a failure is safe.
-    await sql.query(body)
+    // No transaction across statements, so a half-applied file has to be
+    // finished by rerunning — which every migration supports, being written
+    // `if not exists` throughout.
+    await applyScript(readFileSync(migrationsDir + file, 'utf8'))
     await sql`insert into _migrations (name) values (${file})`
     console.log(`Applied ${file}`)
     count++

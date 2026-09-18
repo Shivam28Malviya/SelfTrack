@@ -3,10 +3,12 @@
 A small team app on Vercel: a points leaderboard with files and clipboards, plus
 **TeamPulse**, a team-performance module at `/tp`.
 
+It runs on **Vercel** and on **Cloudflare Workers** from the same source.
+
 - React 18 + Vite + Tailwind, single-page, `src/`
 - One serverless router per module: `api/[...path].js` (leaderboard) and
   `api/tp/[...path].js` (TeamPulse)
-- Postgres on Neon through `@vercel/postgres`; file storage on Supabase
+- Postgres on Neon through `@neondatabase/serverless`; file storage on Supabase
 - Session-token auth in `lib/auth.js`, 30-minute expiry
 
 ## Running locally
@@ -35,7 +37,52 @@ Note that `@vercel/postgres` talks to Neon over HTTPS and cannot open a plain
 Postgres connection, so this only works with a real Neon URL — it will not run
 against a local Postgres.
 
-## Deploying
+## Deploying to Cloudflare Workers
+
+```bash
+npm run build
+npx wrangler secret put POSTGRES_URL                # the Neon pooled URL
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+npx wrangler deploy                                 # or: npm run cf:deploy
+```
+
+`npm run cf:dev` runs it locally on `localhost:8787`, including the static
+assets and both API routers.
+
+How it fits together:
+
+- `worker/index.js` reproduces what `vercel.json` does — `/api/tp/*` to the
+  TeamPulse router, `/api/*` to the leaderboard router, everything else to the
+  built SPA with an `index.html` fallback so a reload on `/tp/people` works. A
+  request for a path that looks like a file still 404s rather than returning
+  HTML, so a missing script fails as a missing script.
+- `worker/adapter.js` runs the existing Vercel-style `(req, res)` handlers
+  unchanged. Neither router was rewritten, so the two deployments cannot drift.
+- `lib/db.js` uses the Neon driver's stateless HTTP transport. This matters on
+  Workers: a pooled WebSocket cannot be reused across requests there, while an
+  HTTP client can. `@vercel/postgres` cannot run on Workers at all — it reads
+  `process.env` at module scope and rejects any host that is not a
+  Vercel-issued pooled URL — so it is gone, and the Neon driver it wrapped is
+  now a direct dependency.
+
+### Two things to know
+
+**Signing in needs the paid Workers plan.** `bcryptjs` at cost 10 burns roughly
+50–200ms of CPU. The free tier caps a request at 10ms, so signup and login would
+fail while every other route worked. The paid plan allows far more and is fine.
+The hashing cost is not lowered and the algorithm is not swapped: either would
+invalidate every existing password.
+
+**One statement per request.** Neon's HTTP transport uses the extended protocol,
+which accepts a single statement, so SQL scripts are split by
+`lib/tp/sqlSplit.js` before being applied — it tracks string literals,
+dollar-quoted blocks and comments, so a semicolon inside any of them does not
+split a statement. There is no transaction across the statements of a
+migration, which is why every one is written `if not exists`: a partly applied
+migration is finished by running it again.
+
+## Deploying to Vercel
 
 Vercel builds `master` on push.
 

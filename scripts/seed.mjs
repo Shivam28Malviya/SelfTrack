@@ -1,7 +1,7 @@
 // Seeds demo users + history, matching the app's old localStorage seed data.
 // Usage: vercel env pull .env.local && node --env-file=.env.local scripts/seed.mjs
 import bcrypt from 'bcryptjs'
-import { sql } from '@vercel/postgres'
+import { sql } from '../lib/db.js'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 const now = Date.now()

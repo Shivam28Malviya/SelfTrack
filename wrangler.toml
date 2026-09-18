@@ -1,0 +1,32 @@
+# Cloudflare Workers deployment.
+#
+# The Vercel setup in vercel.json is left intact: both can run from the same
+# source, and this exists so the app is not tied to one provider's build
+# infrastructure.
+#
+# Deploy:
+#   npm run build
+#   npx wrangler secret put POSTGRES_URL              # from Neon, pooled URL
+#   npx wrangler secret put SUPABASE_URL
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+#   npx wrangler deploy
+name = "selftrack"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+
+# nodejs_compat provides node:crypto (session tokens) and populates
+# process.env from bindings, which is how lib/db.js and lib/supabase.js read
+# their configuration on both platforms.
+compatibility_flags = ["nodejs_compat"]
+
+# The Vite build output, served by the Worker with a SPA fallback.
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+# POSTGRES_URL, SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are secrets, set
+# with `wrangler secret put` rather than listed here. VITE_SUPABASE_* are build
+# time values baked into the client bundle by Vite.

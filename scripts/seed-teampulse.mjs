@@ -6,7 +6,7 @@
 // be worse than an empty one.
 //
 // Usage: TP_SEED=1 node --env-file=.env.local scripts/seed-teampulse.mjs
-import { sql } from '@vercel/postgres'
+import { sql } from '../lib/db.js'
 
 if (process.env.TP_SEED !== '1') {
   console.error('Refusing to seed. Set TP_SEED=1 to confirm this is not a production database.')
