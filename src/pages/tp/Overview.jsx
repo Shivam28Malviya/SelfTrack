@@ -48,7 +48,7 @@ export default function TpOverview() {
         <section className="tp-panel">
           <h1 className="tp-h1">Nothing to show yet</h1>
           <p className="mt-3 m-0 max-w-[560px] text-base leading-relaxed" style={{ color: 'var(--tp-muted)' }}>
-            Your login is not linked to anyone in TeamPulse, so there is no
+            Your login is not linked to anyone in Team Pulse, so there is no
             record to report on. An administrator can link it to your profile.
             Until then this is empty rather than zero — the two are not the same.
           </p>

@@ -13,7 +13,9 @@
     "db:seed:tp": "node scripts/seed-teampulse.mjs",
     "build:migrations": "node scripts/build-migrations.mjs",
     "cf:dev": "wrangler dev",
-    "cf:deploy": "npm run build && wrangler deploy"
+    "cf:deploy": "npm run build && wrangler deploy",
+    "dev:server": "node scripts/dev-server.mjs",
+    "dev:full": "npm run build && node scripts/dev-server.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.5",
@@ -26,6 +28,8 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "pg": "^8.23.0",
+    "playwright": "^1.63.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.9",
     "vite": "^5.4.0",

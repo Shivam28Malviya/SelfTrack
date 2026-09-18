@@ -84,7 +84,7 @@ export default function App() {
           <TpProvider>
             <Suspense fallback={
               <div className="min-h-screen flex items-center justify-center" role="status">
-                <span className="sr-only">Loading TeamPulse</span>
+                <span className="sr-only">Loading Team Pulse</span>
                 <span aria-hidden="true" className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
               </div>
             }>
@@ -129,7 +129,7 @@ export default function App() {
           <TpGuard roles={['admin', 'manager']} what="the quick log"><TpEntry /></TpGuard>
         } />
         <Route path="settings" element={
-          <TpGuard roles={['admin']} what="TeamPulse settings"><TpSettings /></TpGuard>
+          <TpGuard roles={['admin']} what="Team Pulse settings"><TpSettings /></TpGuard>
         } />
         <Route path="*" element={<Navigate to="/tp" replace />} />
       </Route>

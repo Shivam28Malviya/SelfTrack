@@ -145,7 +145,7 @@ export default function TpPeople() {
           title="No people match this view"
           body={
             data.total === 0 && !params.toString()
-              ? 'Nobody has been added to TeamPulse yet. Import the team from a CSV, or add people one at a time.'
+              ? 'Nobody has been added to Team Pulse yet. Import the team from a CSV, or add people one at a time.'
               : 'Try clearing a filter.'
           }
         />

@@ -37,8 +37,8 @@ export default function TpLayout({ title, children }) {
       </a>
 
       <div className="mx-auto w-full max-w-[1480px] p-4 md:p-5 flex flex-col gap-5">
-        <nav className="flex flex-wrap items-center gap-x-6 gap-y-3 px-2 md:px-5 py-2" aria-label="TeamPulse">
-          <Link to="/tp" className="text-[22px] tracking-[-0.04em] mr-auto">TeamPulse</Link>
+        <nav className="flex flex-wrap items-center gap-x-6 gap-y-3 px-2 md:px-5 py-2" aria-label="Team Pulse">
+          <Link to="/tp" className="text-[22px] tracking-[-0.04em] mr-auto">Team Pulse</Link>
 
           <button
             type="button"
@@ -82,7 +82,7 @@ export default function TpLayout({ title, children }) {
         </nav>
 
         <main id="tp-main" className="flex flex-col gap-5">
-          {loading && <TpLoading label={`Loading ${title || 'TeamPulse'}`} />}
+          {loading && <TpLoading label={`Loading ${title || 'Team Pulse'}`} />}
           {!loading && error && <TpError error={error} onRetry={reload} />}
           {!loading && !error && children}
         </main>
