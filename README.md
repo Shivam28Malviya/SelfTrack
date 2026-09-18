@@ -42,20 +42,27 @@ Vercel builds `master` on push.
 ### When a build fails with `Resource provisioning failed`
 
 The symptom is a deployment that goes to ERROR in under a second with **no build
-log at all** — the build never starts, so it is not the code.
+log at all**. The build never starts, so it is not the code and there is nothing
+in the logs to read.
 
-The cause has each time been the **linked Supabase project being paused**. Free
-projects pause after inactivity, and Vercel cannot provision the integration's
-resources while it is down, so every deployment fails before the build begins.
-It affects production and preview alike.
+Check, in this order:
 
-To fix it: open the Supabase dashboard, resume the project, wait for it to reach
-`ACTIVE_HEALTHY` (a minute or two — it passes through `COMING_UP` and
-`RESTORING`), then redeploy the failed commit from the Vercel dashboard.
+1. **Is the Vercel project paused?** `GET /v9/projects/selftrack` reporting
+   `"live": false` means it is. A paused project will not provision compute for
+   a new deployment, and every push fails this way, production and preview
+   alike. Unpause it in the project's settings, or via the API, then redeploy.
+2. **Is the linked Supabase project paused?** Free projects pause after
+   inactivity. Resume it and wait for `ACTIVE_HEALTHY` — it passes through
+   `COMING_UP` and `RESTORING`, which takes a couple of minutes.
 
-This is worth knowing because the failure looks like a broken build and is not
-one. The repository's history contains three failed deploys followed by a commit
-titled "redeploy now that Supabase is resumed", which is the same story.
+Both have happened here. A paused Vercel project was the cause of a run of six
+consecutive failures; the repository's history also contains three failures
+followed by a commit titled "redeploy now that Supabase is resumed", so the
+Supabase case is real too — but resuming Supabase alone did not fix the run of
+six, which is what pointed at the project being paused.
+
+Either way the live site keeps serving: a failed deployment never takes the
+production alias, so the previous good build stays up.
 
 ### After the first deploy carrying TeamPulse
 
