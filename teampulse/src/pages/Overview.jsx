@@ -74,22 +74,22 @@ export default function TpOverview() {
         </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <KpiTile label="On-time completion" value={m.onTimePct} unit="%" target={t.on_time_pct}
+          <KpiTile index={0} label="On-time completion" value={m.onTimePct} unit="%" target={t.on_time_pct}
             basis={`${m.onTimeBasis} judged`}
             tone={m.onTimePct == null ? 'plain' : m.onTimePct >= t.on_time_pct ? 'ok' : 'bad'}
             hint="no tasks due or completed yet" />
-          <KpiTile label="Avg client score" value={m.clientScore} target={t.client_score}
+          <KpiTile index={1} label="Avg client score" value={m.clientScore} target={t.client_score}
             basis={`${m.clientCount} rating${m.clientCount === 1 ? '' : 's'}`}
             tone={m.clientScore == null ? 'plain' : m.clientScore >= t.client_score ? 'ok' : 'warn'}
             hint="no client feedback recorded yet" />
-          <KpiTile label="Defects leaked" value={m.defectsLeaked} target={t.defects_leaked}
+          <KpiTile index={2} label="Defects leaked" value={m.defectsLeaked} target={t.defects_leaked}
             tone={m.defectsLeaked > (t.defects_leaked ?? 0) ? 'bad' : 'ok'} />
-          <KpiTile label="Unplanned absences" value={m.unplannedDays}
+          <KpiTile index={3} label="Unplanned absences" value={m.unplannedDays}
             basis={`over ${m.workingDays} person-days`}
             tone={m.unplannedDays > 0 ? 'warn' : 'ok'} />
-          <KpiTile label="Overdue tasks" value={m.overdueOpen}
+          <KpiTile index={4} label="Overdue tasks" value={m.overdueOpen}
             basis="open and past due" tone={m.overdueOpen > 0 ? 'warn' : 'ok'} />
-          <KpiTile label="Overtime" value={m.overtimeHours} unit=" h"
+          <KpiTile index={5} label="Overtime" value={m.overtimeHours} unit=" h"
             basis={`recorded by ${m.peopleWithOvertime} people`}
             tone={m.overtimeHours == null ? 'plain' : 'warn'}
             hint="nobody has recorded overtime" />
@@ -139,7 +139,7 @@ export default function TpOverview() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="tp-rows tp-stagger">
                   {flagged.map(p => (
                     <tr key={p.personId}>
                       <td className="border-t px-3 py-3 text-sm" style={{ borderColor: 'var(--tp-line)' }}>

@@ -132,7 +132,7 @@ export default function TpEntries() {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="tp-rows tp-stagger">
               {data.entries.map(entry => {
                 const key = `${entry.kind}-${entry.id}`
                 const isEditing = editing?.key === key

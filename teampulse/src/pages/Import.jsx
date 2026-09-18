@@ -103,7 +103,7 @@ export default function TpImport() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="tp-rows tp-stagger">
                     {badRows.map(r => (
                       <tr key={r.line}>
                         <td className="border-t px-2 py-2" style={{ borderColor: 'var(--tp-line)' }}>{r.line}</td>

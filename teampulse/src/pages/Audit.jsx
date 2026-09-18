@@ -60,7 +60,7 @@ export default function TpAudit() {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="tp-rows tp-stagger">
               {data.entries.map(row => (
                 <Fragment key={row.id}>
                   <tr>

@@ -141,3 +141,139 @@ button, a, input, select, textarea {
 @media (min-width: 641px) {
   .tp-cards-narrow { display: none; }
 }
+
+/* ---- Motion ----
+   One system, used everywhere, so movement reads as the same hand throughout.
+   Three rules:
+     1. motion explains something — where a thing came from, that a value
+        changed, that a chart is drawing real data. Nothing moves for decoration
+     2. entrances are short (200-420ms) and ease out; things arrive settling,
+        never bouncing
+     3. every one of these is disabled under prefers-reduced-motion by the
+        global rule further up, and the JS animations check the same query */
+.tp {
+  --tp-ease: cubic-bezier(0.16, 1, 0.3, 1);        /* out-expo: fast then settles */
+  --tp-ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --tp-dur: 380ms;
+}
+
+@keyframes tpRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tpFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes tpScaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tpGrowX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes tpGrowY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+@keyframes tpDraw {
+  from { stroke-dashoffset: var(--tp-draw-length, 1000); }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes tpSheen {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(220%); }
+}
+
+.tp-rise  { animation: tpRise var(--tp-dur) var(--tp-ease) both; }
+.tp-fade  { animation: tpFade 260ms var(--tp-ease-soft) both; }
+.tp-pop   { animation: tpScaleIn 300ms var(--tp-ease) both; }
+
+/* A list whose children arrive one after another. The cap keeps a long table
+   from taking two seconds to finish appearing. */
+.tp-stagger > * { animation: tpRise 360ms var(--tp-ease) both; }
+.tp-stagger > *:nth-child(1)  { animation-delay: 20ms }
+.tp-stagger > *:nth-child(2)  { animation-delay: 50ms }
+.tp-stagger > *:nth-child(3)  { animation-delay: 80ms }
+.tp-stagger > *:nth-child(4)  { animation-delay: 110ms }
+.tp-stagger > *:nth-child(5)  { animation-delay: 140ms }
+.tp-stagger > *:nth-child(6)  { animation-delay: 170ms }
+.tp-stagger > *:nth-child(7)  { animation-delay: 200ms }
+.tp-stagger > *:nth-child(8)  { animation-delay: 230ms }
+.tp-stagger > *:nth-child(9)  { animation-delay: 255ms }
+.tp-stagger > *:nth-child(n+10) { animation-delay: 280ms }
+
+/* Bars and columns grow from their own baseline rather than fading in, which
+   is what makes a chart look like it is drawing its data. */
+.tp-grow-x { transform-origin: left center; animation: tpGrowX 620ms var(--tp-ease) both; }
+.tp-grow-y { transform-origin: bottom center; animation: tpGrowY 620ms var(--tp-ease) both; }
+.tp-draw   { animation: tpDraw 900ms var(--tp-ease-soft) both; }
+
+/* Cards lift very slightly under the pointer. 2px, not 8 — this is a data
+   tool, and a card that leaps is a card that distracts. */
+.tp-card, .tp-panel {
+  transition: transform 260ms var(--tp-ease), box-shadow 260ms var(--tp-ease);
+}
+.tp-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 38px -26px rgba(30, 50, 90, 0.45);
+}
+
+.tp-btn, .tp-btn-ghost {
+  transition: transform 180ms var(--tp-ease), background-color 180ms ease,
+              border-color 180ms ease, box-shadow 180ms var(--tp-ease), opacity 180ms ease;
+}
+.tp-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 22px -14px rgba(30, 50, 90, 0.8); }
+.tp-btn:active:not(:disabled), .tp-btn-ghost:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+.tp-btn:disabled, .tp-btn-ghost:disabled { opacity: 0.55; }
+
+/* Table rows warm on hover so the eye can hold a line across many columns. */
+.tp-rows tr { transition: background-color 160ms ease; }
+.tp-rows tr:hover { background: rgba(30, 50, 90, 0.035); }
+
+/* A loading skeleton sweeps rather than blinks: it reads as work in progress
+   instead of a fault. */
+.tp-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--tp-track);
+}
+.tp-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: tpSheen 1.5s var(--tp-ease-soft) infinite;
+}
+
+/* The nav's active marker slides between items instead of cutting. */
+.tp-navlink { position: relative; }
+.tp-navlink::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: var(--tp-navy);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 260ms var(--tp-ease);
+}
+.tp-navlink[aria-current='page']::after,
+.tp-navlink:hover::after { transform: scaleX(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-card:hover, .tp-btn:hover:not(:disabled) { transform: none; box-shadow: none; }
+  .tp-skeleton::after { animation: none; }
+  /* Every entrance animation resolves to its finished state instantly. The
+     information is the point; the movement was only ever the wrapping. */
+  .tp-rise, .tp-fade, .tp-pop, .tp-grow-x, .tp-grow-y, .tp-draw,
+  .tp-stagger > *, .tp-rows > * {
+    animation: none !important;
+    animation-delay: 0s !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .tp-draw { stroke-dashoffset: 0 !important; }
+  .tp-navlink::after { transition: none; }
+}

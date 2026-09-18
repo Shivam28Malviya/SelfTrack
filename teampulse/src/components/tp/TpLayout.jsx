@@ -63,10 +63,7 @@ export default function TpLayout({ title, children }) {
                 key={n.to}
                 to={n.to}
                 end={n.end}
-                className={({ isActive }) =>
-                  'pb-0.5 min-h-[44px] sm:min-h-0 flex items-center ' +
-                  (isActive ? 'border-b border-[color:var(--tp-navy)]' : 'hover:opacity-70')
-                }
+                className="tp-navlink pb-0.5 min-h-[44px] sm:min-h-0 flex items-center" 
               >
                 {n.label}
               </NavLink>
@@ -83,7 +80,9 @@ export default function TpLayout({ title, children }) {
           </div>
         </nav>
 
-        <main id="tp-main" className="flex flex-col gap-5">
+        {/* Keyed on the path so each screen replays its entrance: the page
+            reads as having arrived, rather than the content swapping in place. */}
+        <main id="tp-main" key={location.pathname} className="tp-fade flex flex-col gap-5">
           {loading && <TpLoading label={`Loading ${title || 'Team Pulse'}`} />}
           {!loading && error && <TpError error={error} onRetry={reload} />}
           {!loading && !error && children}

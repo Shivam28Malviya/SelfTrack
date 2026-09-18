@@ -169,7 +169,7 @@ export default function TpSkills() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="tp-rows tp-stagger">
                       {data.rows.map(row => (
                         <tr key={row.personId}>
                           <th scope="row" className="text-left font-normal text-sm pr-3 py-1 sticky left-0 bg-white z-10">

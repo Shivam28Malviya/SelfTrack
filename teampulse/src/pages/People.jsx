@@ -188,7 +188,7 @@ function PeopleTable({ people }) {
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="tp-rows tp-stagger">
           {people.map(p => (
             <tr key={p.id}>
               <td className="border-t px-3 py-3 text-sm" style={{ borderColor: 'var(--tp-line)' }}>
@@ -231,7 +231,7 @@ function PeopleTable({ people }) {
 
 function PeopleCards({ people }) {
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="tp-stagger grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
       {people.map(p => (
         <Link key={p.id} to={`/people/${p.id}`} className="tp-card flex flex-col gap-3 hover:opacity-90">
           <div className="flex justify-between items-start">

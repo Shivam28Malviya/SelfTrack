@@ -90,20 +90,20 @@ export default function TpDelivery() {
         </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <KpiTile label="On-time completion" value={metrics.onTimePct} unit="%" target={t.on_time_pct}
+          <KpiTile index={0} label="On-time completion" value={metrics.onTimePct} unit="%" target={t.on_time_pct}
             basis={`${metrics.onTimeBasis} task${metrics.onTimeBasis === 1 ? '' : 's'} judged`}
             tone={tone(metrics.onTimePct, t.on_time_pct, 'above')}
             hint="no tasks due or completed in this period" />
-          <KpiTile label="Effort over estimate" value={metrics.effortOverEstPct} unit="%" target={t.effort_over_est_pct}
+          <KpiTile index={1} label="Effort over estimate" value={metrics.effortOverEstPct} unit="%" target={t.effort_over_est_pct}
             basis={`${metrics.effortBasisHours} estimated hours`}
             tone={tone(metrics.effortOverEstPct, t.effort_over_est_pct, 'below')}
             hint="no completed task has both an estimate and an actual" />
-          <KpiTile label="Reopen rate" value={metrics.reopenRatePct} unit="%" target={t.reopen_rate_pct}
+          <KpiTile index={2} label="Reopen rate" value={metrics.reopenRatePct} unit="%" target={t.reopen_rate_pct}
             tone={tone(metrics.reopenRatePct, t.reopen_rate_pct, 'below')}
             hint="nothing completed in this period" />
-          <KpiTile label="Defects leaked to UAT" value={metrics.defectsLeaked} target={t.defects_leaked}
+          <KpiTile index={3} label="Defects leaked to UAT" value={metrics.defectsLeaked} target={t.defects_leaked}
             tone={metrics.defectsLeaked > (t.defects_leaked ?? 0) ? 'bad' : 'ok'} />
-          <KpiTile label="Overdue tasks" value={metrics.overdueOpen}
+          <KpiTile index={4} label="Overdue tasks" value={metrics.overdueOpen}
             basis="open and past due" tone={metrics.overdueOpen > 0 ? 'warn' : 'ok'} />
         </div>
       </section>
@@ -202,7 +202,7 @@ export default function TpDelivery() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="tp-rows tp-stagger">
                     {(tasks?.tasks || []).map(task => (
                       <tr key={task.id}>
                         <td className="border-t px-3 py-3 text-sm" style={{ borderColor: 'var(--tp-line)' }}>

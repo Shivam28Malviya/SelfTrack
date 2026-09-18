@@ -165,14 +165,14 @@ export default function TpEmployee() {
       {tab === 'Overview' && (
         <>
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <KpiTile label="On-time" value={m.onTimePct} unit="%" basis={`${m.onTimeBasis} judged`}
+            <KpiTile index={0} label="On-time" value={m.onTimePct} unit="%" basis={`${m.onTimeBasis} judged`}
               hint="nothing due or completed" />
-            <KpiTile label="Client score" value={m.clientScore} basis={`${m.clientCount} ratings`}
+            <KpiTile index={1} label="Client score" value={m.clientScore} basis={`${m.clientCount} ratings`}
               hint="no client feedback yet" />
-            <KpiTile label="Completed" value={m.completed} />
-            <KpiTile label="Overdue open" value={m.overdueOpen} tone={m.overdueOpen > 0 ? 'warn' : 'ok'} />
-            <KpiTile label="Unplanned days" value={m.unplannedDays} tone={m.unplannedDays > 0 ? 'warn' : 'ok'} />
-            <KpiTile label="Overtime" value={m.overtimeHours} unit=" h" hint="none recorded" />
+            <KpiTile index={2} label="Completed" value={m.completed} />
+            <KpiTile index={3} label="Overdue open" value={m.overdueOpen} tone={m.overdueOpen > 0 ? 'warn' : 'ok'} />
+            <KpiTile index={4} label="Unplanned days" value={m.unplannedDays} tone={m.unplannedDays > 0 ? 'warn' : 'ok'} />
+            <KpiTile index={5} label="Overtime" value={m.overtimeHours} unit=" h" hint="none recorded" />
           </div>
 
           <div className="grid gap-5 lg:grid-cols-3">
@@ -215,7 +215,7 @@ export default function TpEmployee() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="tp-rows tp-stagger">
                   {data.tasks.map(t => (
                     <tr key={t.id}>
                       <td className="border-t px-3 py-3 text-sm" style={{ borderColor: 'var(--tp-line)' }}>

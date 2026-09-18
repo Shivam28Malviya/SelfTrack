@@ -7,7 +7,7 @@ export function TpLoading({ label = 'Loading', rows = 3 }) {
       <span className="sr-only">{label}</span>
       <div className="space-y-3" aria-hidden="true">
         {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="h-4 rounded-full bg-[color:var(--tp-track)] animate-pulse-soft" style={{ width: `${90 - i * 12}%` }} />
+          <div key={i} className="tp-skeleton h-4 rounded-full" style={{ width: `${90 - i * 12}%` }} />
         ))}
       </div>
     </div>
@@ -16,7 +16,7 @@ export function TpLoading({ label = 'Loading', rows = 3 }) {
 
 export function TpEmpty({ title = 'Nothing here yet', body, action }) {
   return (
-    <div className="tp-card text-center py-12">
+    <div className="tp-card tp-rise text-center py-12">
       <p className="text-xl m-0">{title}</p>
       {body && <p className="mt-2 text-sm m-0" style={{ color: 'var(--tp-muted)' }}>{body}</p>}
       {action && <div className="mt-5 flex justify-center">{action}</div>}

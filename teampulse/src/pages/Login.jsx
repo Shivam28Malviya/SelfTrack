@@ -23,13 +23,13 @@ export default function Login() {
 
   return (
     <div className="tp min-h-screen grid place-items-center p-4">
-      <div className="w-full max-w-[420px] flex flex-col gap-6">
+      <div className="w-full max-w-[420px] flex flex-col gap-6 tp-rise">
         <div className="text-center">
           <p className="tp-label m-0">Team performance</p>
           <h1 className="tp-h1 mt-2">Team Pulse</h1>
         </div>
 
-        <form className="tp-card flex flex-col gap-5" onSubmit={submit} noValidate>
+        <form className="tp-card tp-rise flex flex-col gap-5" style={{ animationDelay: '90ms' }} onSubmit={submit} noValidate>
           <div>
             <p className="text-xl m-0">Sign in</p>
             <p className="mt-1 m-0 text-sm" style={{ color: 'var(--tp-muted)' }}>

@@ -107,15 +107,15 @@ export default function TpAttendance() {
         </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <KpiTile label="Attendance rate" value={m.attendanceRatePct} unit="%"
+          <KpiTile index={0} label="Attendance rate" value={m.attendanceRatePct} unit="%"
             basis={`${m.workingDays} person-days`}
             tone={m.attendanceRatePct == null ? 'plain' : m.attendanceRatePct >= 95 ? 'ok' : 'warn'}
             hint="no working days counted yet" />
-          <KpiTile label="Unplanned days" value={m.unplannedDays}
+          <KpiTile index={1} label="Unplanned days" value={m.unplannedDays}
             tone={m.unplannedDays > 0 ? 'warn' : 'ok'} basis="counts against the rate" />
-          <KpiTile label="Sick days" value={m.sickDays} basis="counts against the rate" />
-          <KpiTile label="Planned leave" value={m.plannedDays} tone="ok" basis="does not count against the rate" />
-          <KpiTile label="Late logins" value={m.lateLogins}
+          <KpiTile index={2} label="Sick days" value={m.sickDays} basis="counts against the rate" />
+          <KpiTile index={3} label="Planned leave" value={m.plannedDays} tone="ok" basis="does not count against the rate" />
+          <KpiTile index={4} label="Late logins" value={m.lateLogins}
             basis={m.avgMinutesLate != null ? `${m.avgMinutesLate} min on average` : undefined}
             tone={m.lateLogins > 0 ? 'warn' : 'ok'} />
         </div>
@@ -162,7 +162,7 @@ export default function TpAttendance() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="tp-rows tp-stagger">
                 {grid.rows.map(row => (
                   <tr key={row.personId}>
                     <th scope="row" className="text-left font-normal text-[13px] pr-3 py-1 sticky left-0 bg-white z-10">
@@ -277,7 +277,7 @@ export default function TpAttendance() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="tp-rows tp-stagger">
                 {leave.map(r => (
                   <tr key={r.id}>
                     <td className="border-t px-3 py-3 text-sm" style={{ borderColor: 'var(--tp-line)' }}>

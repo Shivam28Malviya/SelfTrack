@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { DASH } from '../../../lib/tpFormat'
+import { stagger, prefersReducedMotion } from '../../../lib/motion'
 
 /**
  * Chart primitives.
@@ -20,7 +21,7 @@ export function ChartFrame({ title, subtitle, legend, table, children }) {
   const tableId = useId()
 
   return (
-    <figure className="tp-card m-0 flex flex-col gap-4">
+    <figure className="tp-card tp-rise m-0 flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <figcaption className="flex flex-col gap-1">
           <span className="text-xl">{title}</span>
@@ -64,7 +65,7 @@ export function RankedBars({ rows, max = 100, target, unit = '%', emptyLabel = '
 
   return (
     <ul className="flex flex-col gap-2.5 m-0 p-0 list-none">
-      {rows.map(r => {
+      {rows.map((r, i) => {
         const width = r.value == null ? 0 : Math.max(0, Math.min(100, (r.value / scale) * 100))
         const below = target != null && r.value != null && r.value < target
         return (
@@ -77,8 +78,12 @@ export function RankedBars({ rows, max = 100, target, unit = '%', emptyLabel = '
               title={`${r.label}: ${r.value == null ? 'no data' : r.value + unit}${r.basis ? ` over ${r.basis} tasks` : ''}`}
             >
               <span
-                className="absolute left-0 top-0 h-4 rounded-full"
-                style={{ width: `${width}%`, background: below ? 'var(--tp-bad-fg)' : 'var(--tp-cat-1)' }}
+                className="tp-grow-x absolute left-0 top-0 h-4 rounded-full"
+                style={{
+                  width: `${width}%`,
+                  background: below ? 'var(--tp-bad-fg)' : 'var(--tp-cat-1)',
+                  animationDelay: `${stagger(i, 55, 400)}ms`,
+                }}
               />
               {target != null && (
                 // A target is a reference mark, not a series, so it stays grey.
@@ -111,8 +116,9 @@ export function Columns({ rows, emptyLabel = 'Nothing overdue' }) {
         <div key={r.label} className="flex-1 flex flex-col items-center justify-end gap-2 h-full">
           <span className="text-sm tabular-nums">{r.n}</span>
           <div
-            className="w-full rounded-xl"
+            className="tp-grow-y w-full rounded-xl"
             style={{
+              animationDelay: `${stagger(i, 70, 350)}ms`,
               height: `${max > 0 ? Math.max(2, (r.n / max) * 100) : 0}%`,
               // One hue, getting darker as the bucket gets worse: this is a
               // magnitude ramp, not four unrelated categories.
@@ -159,8 +165,15 @@ export function Sparkline({ points, color = 'var(--tp-cat-1)', unit = '', invert
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} fill="none" role="img"
         aria-label={`${points.length} months, from ${first.value}${unit} to ${last.value}${unit}`}>
         <polyline
+          className="tp-draw"
           points={drawn.map(c => `${c.x},${c.y}`).join(' ')}
           stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{
+            // Dash the path by its own length, then animate the offset to zero:
+            // the line appears to be drawn rather than to fade in.
+            '--tp-draw-length': pathLength(drawn),
+            strokeDasharray: pathLength(drawn),
+          }}
         />
         {/* A surface ring keeps the end marker legible where it sits on the line. */}
         <circle cx={last.x} cy={last.y} r="4" fill={color} stroke="#ffffff" strokeWidth="2" />
@@ -194,13 +207,14 @@ export function EffortScatter({ points, emptyLabel = 'No completed tasks with bo
           preserveAspectRatio="none" aria-hidden="true">
           <line x1="0" y1="100" x2="100" y2="0" stroke="var(--tp-axis)" strokeWidth="0.5" strokeDasharray="2 2" />
         </svg>
-        {points.map(p => (
+        {points.map((p, i) => (
           <span
             key={p.id}
             tabIndex={0}
             title={`${p.title} — estimated ${p.est} h, actual ${p.actual} h${p.owner ? `, ${p.owner}` : ''}`}
-            className="absolute w-3 h-3 -ml-1.5 -mb-1.5 rounded-full"
+            className="tp-pop absolute w-3 h-3 -ml-1.5 -mb-1.5 rounded-full"
             style={{
+              animationDelay: `${stagger(i, 28, 420)}ms`,
               left: `${(p.est / max) * 100}%`,
               bottom: `${(p.actual / max) * 100}%`,
               background: p.over ? 'var(--tp-cat-2)' : 'var(--tp-cat-1)',
@@ -219,6 +233,16 @@ export function EffortScatter({ points, emptyLabel = 'No completed tasks with bo
       </p>
     </div>
   )
+}
+
+/** Length of the polyline, so the draw-in dash matches the path exactly.
+ *  A fixed guess would make short lines snap and long ones crawl. */
+function pathLength(pts) {
+  let total = 0
+  for (let i = 1; i < pts.length; i++) {
+    total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y)
+  }
+  return Math.ceil(total) || 1
 }
 
 export function Empty({ label }) {
