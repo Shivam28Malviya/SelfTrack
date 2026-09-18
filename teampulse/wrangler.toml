@@ -1,0 +1,19 @@
+# Cloudflare Workers deployment.
+#
+#   npm run build
+#   npx wrangler secret put POSTGRES_URL     # the Neon pooled connection string
+#   npx wrangler deploy
+name = "team-pulse"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+
+# nodejs_compat provides node:crypto for session tokens and populates
+# process.env from bindings, which is how lib/db.js reads its configuration.
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[observability]
+enabled = true

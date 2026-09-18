@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Team Pulse">
+  <rect width="32" height="32" rx="8" fill="#1e325a"/>
+  <path d="M5 17h5l3-7 4 13 3-8h7" fill="none" stroke="#ffffff" stroke-width="2.4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
