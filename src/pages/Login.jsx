@@ -44,9 +44,9 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10">
       {/* Editorial wordmark */}
       <div className="w-full max-w-md mb-6 text-center animate-slide-up">
-        <span className="eyebrow">Gamified progress</span>
+        <span className="eyebrow">Team performance</span>
         <h1 className="display text-6xl sm:text-7xl text-neutral-900 mt-2">
-          <Wordmark text="SELFTRACK" />
+          <Wordmark text="TEAM PULSE" />
         </h1>
       </div>
 

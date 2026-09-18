@@ -74,8 +74,8 @@ export default function Signup() {
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-6">
-          <span className="eyebrow">Join the leaderboard</span>
-          <h1 className="display text-5xl sm:text-6xl text-neutral-900 mt-2">SELFTRACK</h1>
+          <span className="eyebrow">Request access</span>
+          <h1 className="display text-5xl sm:text-6xl text-neutral-900 mt-2">TEAM PULSE</h1>
         </div>
 
         <div
