@@ -13,16 +13,55 @@ It runs on **Vercel** and on **Cloudflare Workers** from the same source.
 
 ## Running locally
 
+Node 18+ and a Postgres to point at. The same commands work on macOS, Linux and
+Windows — nothing here needs a shell-specific way of setting variables.
+
 ```bash
 npm install
-vercel env pull .env.local     # POSTGRES_URL, Supabase keys
-npm run dev                    # http://localhost:5173
-npm test                       # unit tests (node --test)
-npm run build
 ```
 
+Put a connection string in `.env.local` (gitignored). Any of these works:
+
+```bash
+# A local Postgres, e.g. via Docker:
+#   docker run -d --name teampulse-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16
+echo 'POSTGRES_URL=postgres://postgres:postgres@localhost:5432/postgres' > .env.local
+
+# ...or the real Neon database, pulled from Vercel:
+#   vercel env pull .env.local
+```
+
+Then, once:
+
+```bash
+npm run db:migrate                              # creates the schema
+TP_SEED=1 npm run db:seed:tp                    # sample team + activity (never run on production)
+npm run db:admin -- you@example.com yourpassword
+```
+
+And to run it:
+
+```bash
+npm run dev:full        # builds the client, serves everything on http://localhost:5174
+```
+
+Sign in with the address you just passed to `db:admin`; Team Pulse is at `/tp`.
+
+`npm run dev` is the Vite dev server with hot reload, but it serves the client
+only — there is no API behind it. `npm run dev:full` is the one that runs the
+whole app, because it mounts the same handlers that run in production rather
+than a stand-in.
+
+A note on the database: `@neondatabase/serverless` speaks HTTP to Neon, so
+`lib/db.js` picks its transport from the connection string and uses
+node-postgres for an ordinary host. It also pins the `DATE` and `TIME` parsers
+to return raw strings, because node-postgres would otherwise hand back `Date`
+objects where the Neon driver returns `'YYYY-MM-DD'` — a difference that makes
+local behaviour quietly disagree with production.
+
 `npm test` covers validators, date maths, CSV handling, task and status rules,
-formatters, and the contrast of every colour pair the UI puts together.
+the Workers adapter, SQL statement splitting, formatters, and the contrast of
+every colour pair the UI puts together.
 
 ## Database
 
