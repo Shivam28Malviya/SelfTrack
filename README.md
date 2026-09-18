@@ -1,11 +1,13 @@
-# SelfTrack
+# Team Pulse
 
-A small team app on Vercel: a points leaderboard with files and clipboards, plus
-**TeamPulse**, a team-performance module at `/tp`.
+A team-performance app at `/tp` — people, delivery, attendance, skills and
+certifications — sharing a shell with SelfTrack, the points leaderboard with
+files and clipboards that this repository started as.
 
 It runs on **Vercel** and on **Cloudflare Workers** from the same source.
 
-- React 18 + Vite + Tailwind, single-page, `src/`
+- React 18 + Vite + Tailwind, single-page, `src/`. The repository is still
+  named SelfTrack; the product is Team Pulse
 - One serverless router per module: `api/[...path].js` (leaderboard) and
   `api/tp/[...path].js` (TeamPulse)
 - Postgres on Neon through `@neondatabase/serverless`; file storage on Supabase
@@ -18,8 +20,8 @@ Linux and Windows PowerShell: nothing uses `export`, and nothing relies on the
 `VAR=value command` form, which PowerShell cannot parse.
 
 ```bash
-git clone https://github.com/Shivam28Malviya/SelfTrack.git
-cd SelfTrack
+git clone https://github.com/Shivam28Malviya/SelfTrack.git TeamPulse
+cd TeamPulse
 npm install
 ```
 
