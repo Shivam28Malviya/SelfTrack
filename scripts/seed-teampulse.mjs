@@ -5,11 +5,20 @@
 // Guarded on purpose: seeding a production database with invented people would
 // be worse than an empty one.
 //
-// Usage: TP_SEED=1 node --env-file=.env.local scripts/seed-teampulse.mjs
+// Confirm with either form — the flag exists because `TP_SEED=1 npm run ...`
+// is bash syntax that PowerShell cannot parse, and the setup should not depend
+// on which shell someone happens to use:
+//
+//   npm run db:seed:tp -- --confirm
+//   TP_SEED=1 npm run db:seed:tp
 import { sql } from '../lib/db.js'
 
-if (process.env.TP_SEED !== '1') {
-  console.error('Refusing to seed. Set TP_SEED=1 to confirm this is not a production database.')
+const confirmed = process.env.TP_SEED === '1' || process.argv.includes('--confirm')
+
+if (!confirmed) {
+  console.error('Refusing to seed: this adds fictional people and would be wrong on a real database.')
+  console.error('If this is a development database, confirm with:')
+  console.error('  npm run db:seed:tp -- --confirm')
   process.exit(1)
 }
 
@@ -214,7 +223,7 @@ const run = async () => {
   const c = counts[0]
   console.log(`Seeded 1 manager, ${PEOPLE.length} people, ${PROJECTS.length} projects, ${SKILLS.length} skills.`)
   console.log(`Activity: ${c.tasks} tasks, ${c.attendance} attendance days, ${c.feedback} feedback, ${c.ratings} skill ratings, ${c.certs} certifications.`)
-  console.log('Link a login to a person with: update tp_person set user_id = <users.id> where name = \'Sample Manager\';')
+  console.log('Next: npm run db:admin -- you@example.com yourpassword')
   process.exit(0)
 }
 

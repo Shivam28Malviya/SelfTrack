@@ -267,7 +267,7 @@ Attendance, late-login minutes and behavioural flags are employee monitoring.
 ```
 vercel env pull .env.local
 node --env-file=.env.local scripts/migrate.mjs
-TP_SEED=1 node --env-file=.env.local scripts/seed-teampulse.mjs   # sample data, never in production
+npm run db:seed:tp -- --confirm     # sample data, never in production
 npm run dev            # TeamPulse is at /tp
 ```
 

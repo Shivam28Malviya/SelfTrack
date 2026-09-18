@@ -13,10 +13,13 @@ It runs on **Vercel** and on **Cloudflare Workers** from the same source.
 
 ## Running locally
 
-Node 18+ and a Postgres to point at. The same commands work on macOS, Linux and
-Windows — nothing here needs a shell-specific way of setting variables.
+Node 18+ and a Postgres to point at. Every command below is the same on macOS,
+Linux and Windows PowerShell: nothing uses `export`, and nothing relies on the
+`VAR=value command` form, which PowerShell cannot parse.
 
 ```bash
+git clone https://github.com/Shivam28Malviya/SelfTrack.git
+cd SelfTrack
 npm install
 ```
 
@@ -35,7 +38,7 @@ Then, once:
 
 ```bash
 npm run db:migrate                              # creates the schema
-TP_SEED=1 npm run db:seed:tp                    # sample team + activity (never run on production)
+npm run db:seed:tp -- --confirm                 # sample team + activity (never run on production)
 npm run db:admin -- you@example.com yourpassword
 ```
 
@@ -174,7 +177,7 @@ A `users.role` of `admin` maps to TeamPulse admin and `moderator` to manager.
 Optional sample data, which refuses to run without the flag:
 
 ```bash
-TP_SEED=1 node --env-file=.env.local scripts/seed-teampulse.mjs
+npm run db:seed:tp -- --confirm
 ```
 
 ## TeamPulse
