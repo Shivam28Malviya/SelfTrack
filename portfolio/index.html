@@ -71,7 +71,23 @@ section{padding-block:clamp(72px,10vw,120px)}
 .badge-wrap{display:grid;justify-items:center}
 .strap{width:22px;height:110px;background:repeating-linear-gradient(90deg,var(--accent) 0 9px,#7c89ee 9px 13px);border-radius:3px}
 .clip{width:46px;height:20px;border-radius:6px;background:#c3c8dc;margin-top:-4px}
-.badge{width:250px;max-width:100%;margin-top:-4px;border-radius:20px;background:var(--surface);border:1px solid var(--line);box-shadow:0 40px 60px -30px rgba(20,24,60,.5);overflow:hidden;transform-origin:50% -130px;animation:sway 6s ease-in-out infinite}
+.badge{all:unset;box-sizing:border-box;display:block;width:250px;max-width:100%;margin-top:-4px;cursor:pointer;perspective:1200px;transform-origin:50% -130px;animation:sway 6s ease-in-out infinite;-webkit-tap-highlight-color:transparent}
+.badge:focus-visible{outline:2px solid var(--accent);outline-offset:6px;border-radius:22px}
+.badge.flipped{animation-play-state:paused}
+.flip{position:relative;display:grid;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.3,1.4,.5,1)}
+.badge:hover .flip{transform:rotateY(-12deg)}
+.badge.flipped .flip{transform:rotateY(180deg)}
+.badge.flipped:hover .flip{transform:rotateY(168deg)}
+.face{grid-area:1/1;border-radius:20px;background:var(--surface);border:1px solid var(--line);box-shadow:0 40px 60px -30px rgba(20,24,60,.45);overflow:hidden;-webkit-backface-visibility:hidden;backface-visibility:hidden;font:400 14px/1.4 var(--display);color:var(--ink);text-align:left}
+.face.back{transform:rotateY(180deg);display:flex;flex-direction:column}
+.back-body{padding:14px 16px 12px;display:grid;gap:0;flex:1}
+.back-row{display:grid;gap:1px;padding-block:7px;border-bottom:1px dashed var(--line)}
+.back-row span{font:500 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.back-row b{font-size:12.5px;font-weight:700;line-height:1.3}
+.back-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 16px;background:var(--accent-soft);font:500 10px var(--mono);color:var(--ink-2)}
+.flip-hint{margin-top:16px;font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.flip-hint i{font-style:normal;display:inline-block;animation:spin 3s ease-in-out infinite}
+@keyframes spin{0%,60%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 @keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 .badge-top{background:var(--accent);color:var(--accent-ink);padding:14px 16px;display:flex;gap:10px;align-items:center}
 .badge-top .mark{width:30px;height:30px;font-size:10px;background:var(--accent-ink);color:var(--accent)}
@@ -132,7 +148,6 @@ section{padding-block:clamp(72px,10vw,120px)}
 .inner p{color:var(--ink-2);max-width:60ch}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:500 12px var(--mono);padding:6px 10px;border-radius:999px;background:var(--bg-2);color:var(--ink-2)}
-.inner .big{font:italic 400 clamp(60px,9vw,120px)/.9 var(--serif);color:var(--t-1);position:absolute;right:24px;bottom:12px;pointer-events:none}
 
 /* Experience timeline */
 .firms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
@@ -315,7 +330,9 @@ footer{padding-block:32px 48px;color:var(--muted);font:400 12px var(--mono);disp
 
     <div class="badge-wrap" aria-label="Architect ID card">
       <div class="strap"></div><div class="clip"></div>
-      <div class="badge">
+      <button class="badge" type="button" id="badge" aria-pressed="false" aria-label="Architect ID card. Select to flip for more details">
+       <span class="flip">
+        <span class="face front">
         <div class="badge-top"><span class="mark">SM</span><div><b>ARCHITECT ID</b><small>WMS · Supply chain</small></div></div>
         <div class="badge-body">
           <div class="badge-photo"><img src="photo.jpg" alt=""></div>
@@ -326,7 +343,23 @@ footer{padding-block:32px 48px;color:var(--muted);font:400 12px var(--mono);disp
           </div>
           <svg class="barcode" id="barcode" viewBox="0 0 220 36" preserveAspectRatio="none" aria-hidden="true"></svg>
         </div>
-      </div>
+        </span>
+        <span class="face back">
+          <div class="badge-top"><span class="mark">SM</span><div><b>HOLDER DETAILS</b><small>Card SM-0117 · reverse</small></div></div>
+          <div class="back-body">
+            <div class="back-row"><span>Current role</span><b>Solutions Architect, EY</b></div>
+            <div class="back-row"><span>Specialism</span><b>Blue Yonder WMS · WLM · Discrete</b></div>
+            <div class="back-row"><span>Clients</span><b>Unilever · Croma · Hindustan Unilever · Toll · Nike · Komatsu</b></div>
+            <div class="back-row"><span>Worked in</span><b>India · United Kingdom · USA</b></div>
+            <div class="back-row"><span>Recognition</span><b>5 awards, incl. Project Star &amp; Customer Delight</b></div>
+            <div class="back-row"><span>Education</span><b>BE, Electrical &amp; Electronics · LNCT Bhopal</b></div>
+            <div class="back-row" style="border-bottom:0"><span>Reach me</span><b style="overflow-wrap:anywhere">shivammalviya2015@gmail.com</b></div>
+          </div>
+          <div class="back-foot"><span>If found, return to the nearest warehouse</span><span aria-hidden="true">↺</span></div>
+        </span>
+       </span>
+      </button>
+      <div class="flip-hint" aria-hidden="true"><i>↻</i> <span id="flip-text">Tap the card to flip</span></div>
     </div>
 
     <div class="facts">
@@ -488,13 +521,11 @@ footer{padding-block:32px 48px;color:var(--muted);font:400 12px var(--mono);disp
   var acc=document.getElementById("acc");
   work.forEach(function(w,i){
     var p=document.createElement("div");p.className="panel"+(i===0?" open":"");p.tabIndex=0;p.setAttribute("role","button");p.setAttribute("aria-expanded",i===0);
-    p.innerHTML='<div class="spine">'+w[0]+'</div><span class="plus" aria-hidden="true">+</span><div class="inner"><div class="meta">'+w[1]+' · '+w[2]+'</div><h3>'+w[0]+'</h3><p>'+w[3]+'</p><div class="chips">'+w[4].map(function(c){return '<span class="chip">'+c+'</span>'}).join("")+'</div></div><div class="big" aria-hidden="true">0'+(i+1)+'</div>';
+    p.innerHTML='<div class="spine">'+w[0]+'</div><span class="plus" aria-hidden="true">+</span><div class="inner"><div class="meta">'+w[1]+' · '+w[2]+'</div><h3>'+w[0]+'</h3><p>'+w[3]+'</p><div class="chips">'+w[4].map(function(c){return '<span class="chip">'+c+'</span>'}).join("")+'</div></div>';
     function open(){acc.querySelectorAll(".panel").forEach(function(x){x.classList.toggle("open",x===p);x.setAttribute("aria-expanded",x===p)})}
     p.addEventListener("click",open);p.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}});
     acc.appendChild(p);
   });
-  // The big number only shows on the open panel
-  var st=document.createElement("style");st.textContent=".panel .big{display:none}.panel.open .big{display:block}";document.head.appendChild(st);
 
   // Awards
   var star='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/></svg>';
@@ -544,6 +575,10 @@ footer{padding-block:32px 48px;color:var(--muted);font:400 12px var(--mono);disp
     });
     setTimeout(function(){[].forEach.call(document.querySelectorAll(".reveal"),function(el){el.classList.add("shown")})},12000);
   }
+
+  // Flip the ID card
+  var badge=document.getElementById("badge"),ft=document.getElementById("flip-text");
+  badge.addEventListener("click",function(){var on=badge.classList.toggle("flipped");badge.setAttribute("aria-pressed",on);ft.textContent=on?"Tap to flip back":"Tap the card to flip"});
 
   // Copy email
   document.getElementById("copy").addEventListener("click",function(){
