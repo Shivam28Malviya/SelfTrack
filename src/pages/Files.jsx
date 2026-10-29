@@ -26,6 +26,33 @@ function formatElapsed(seconds) {
   return `${m}m ${s}s`
 }
 
+function putWithProgress(signedUrl, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const form = new FormData()
+    form.append('cacheControl', '3600')
+    form.append('', file)
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', signedUrl)
+    if (anonKey) {
+      xhr.setRequestHeader('apikey', anonKey)
+      xhr.setRequestHeader('Authorization', `Bearer ${anonKey}`)
+    }
+    xhr.setRequestHeader('x-upsert', 'false')
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress({ loaded: e.loaded, total: e.total })
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve()
+      let msg = `Upload failed (HTTP ${xhr.status}).`
+      try { msg = JSON.parse(xhr.responseText).message || msg } catch { /* keep default */ }
+      reject(new Error(msg))
+    }
+    xhr.onerror = () => reject(new Error('Network error during upload.'))
+    xhr.send(form)
+  })
+}
+
 function fileIcon(name) {
   const ext = (name.split('.').pop() || '').toLowerCase()
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '📦'
@@ -47,6 +74,7 @@ export default function Files() {
   const [uploading, setUploading] = useState(false)
   const [batch, setBatch] = useState(null) // { index, total, name }
   const [elapsedSec, setElapsedSec] = useState(0)
+  const [progress, setProgress] = useState(null) // { loaded, total, pct, etaSec }
   const [dragOver, setDragOver] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null) // { type: 'file'|'clipboard', id, label }
   const [clipboards, setClipboards] = useState([])
@@ -142,12 +170,21 @@ export default function Files() {
       const urlRes = await apiCall('POST', '/files/upload-url', { path })
       if (!urlRes.success) throw new Error(urlRes.error || 'Could not start upload.')
 
-      const supabase = getSupabase()
-      const { error: uploadError } = await supabase.storage
-        .from(FILES_BUCKET)
-        .uploadToSignedUrl(urlRes.path, urlRes.token, file, { contentType: file.type })
-      if (uploadError) throw new Error(uploadError.message || 'Upload failed.')
+      // XHR instead of the SDK's uploadToSignedUrl — fetch has no upload
+      // progress events, XHR does.
+      const startedAt = Date.now()
+      setProgress({ loaded: 0, total: file.size, pct: 0, etaSec: null })
+      await putWithProgress(urlRes.signedUrl, file, ({ loaded, total }) => {
+        const elapsed = (Date.now() - startedAt) / 1000
+        const rate = elapsed > 0 ? loaded / elapsed : 0
+        setProgress({
+          loaded, total,
+          pct: total ? Math.min(100, Math.floor((loaded / total) * 100)) : 0,
+          etaSec: rate > 0 && elapsed >= 1 ? Math.ceil((total - loaded) / rate) : null,
+        })
+      })
 
+      const supabase = getSupabase()
       const { data: pub } = supabase.storage.from(FILES_BUCKET).getPublicUrl(urlRes.path)
       const data = await apiCall('POST', '/files', {
         name: file.name, url: pub.publicUrl, size: file.size, contentType: file.type,
@@ -198,6 +235,7 @@ export default function Files() {
 
     setUploading(false)
     setBatch(null)
+    setProgress(null)
     if (inputRef.current) inputRef.current.value = ''
 
     if (failed.length === 0) {
@@ -265,12 +303,20 @@ export default function Files() {
                         </p>
                       )}
                       <div className="flex items-baseline justify-between mb-1.5">
-                        <span className="text-sm font-bold text-neutral-900">Uploading…</span>
-                        <span className="text-xs font-medium text-neutral-500">{formatElapsed(elapsedSec)} elapsed</span>
+                        <span className="text-sm font-bold text-neutral-900">Uploading… {progress ? `${progress.pct}%` : ''}</span>
+                        <span className="text-xs font-medium text-neutral-500">
+                          {progress?.etaSec != null ? `${formatElapsed(progress.etaSec)} left` : 'estimating…'}
+                        </span>
                       </div>
-                      {/* Indeterminate — Supabase's client doesn't expose byte-level progress */}
-                      <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden relative">
-                        <div className="absolute inset-y-0 left-0 w-1/3 bg-[#a97e5d] rounded-full animate-[indeterminateBar_1.2s_ease-in-out_infinite]" />
+                      <div className="h-2 w-full bg-neutral-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#a97e5d] rounded-full transition-[width] duration-200"
+                          style={{ width: `${progress?.pct ?? 0}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1.5 text-xs text-neutral-400">
+                        <span>{progress ? `${formatBytes(progress.loaded)} / ${formatBytes(progress.total)}` : ''}</span>
+                        <span>{formatElapsed(elapsedSec)} elapsed</span>
                       </div>
                     </div>
                   </div>
