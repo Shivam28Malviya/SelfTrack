@@ -2,5 +2,8 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/[...path]?path=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron/keepalive", "schedule": "0 9 */3 * *" }
   ]
 }

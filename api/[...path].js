@@ -309,6 +309,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, ...state })
     }
 
+    // Hit by a Vercel cron (see vercel.json) so the free-tier Supabase project
+    // used for file storage never idles long enough to be auto-paused.
+    if (route === '/cron/keepalive' && method === 'GET') {
+      const { error } = await getSupabaseAdmin().storage.from(FILES_BUCKET).list('', { limit: 1 })
+      if (error) throw new HttpError(502, error.message || 'Supabase keepalive failed.')
+      return res.status(200).json({ success: true })
+    }
+
     // ---- files (admin) ----
     // Client picks a UUID-scoped path client-side and asks for a signed
     // upload URL here (admin-gated). The browser then PUTs the file bytes
